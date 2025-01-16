@@ -1,9 +1,9 @@
-import { auth } from '@/lib/auth';
 import Providers from '@/components/layout/providers';
 import { Toaster } from '@/components/ui/sonner';
 import type { Metadata } from 'next';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { Lato } from 'next/font/google';
+import { Session } from 'next-auth';
 import NextTopLoader from 'nextjs-toploader';
 import './globals.css';
 
@@ -18,12 +18,13 @@ const lato = Lato({
   display: 'swap'
 });
 
-export default async function RootLayout({
-  children
+export default function RootLayout({
+  children,
+  session
 }: {
   children: React.ReactNode;
+  session: Session | null | undefined;
 }) {
-  const session = await auth();
   return (
     <html lang='en' className={`${lato.className}`} suppressHydrationWarning>
       <body className={'overflow-hidden'}>

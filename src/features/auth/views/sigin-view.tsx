@@ -31,7 +31,7 @@ export default function SignInViewPage() {
       case 'forgotPassword':
         return <ForgotPasswordForm />;
       case 'resetPassword':
-        return <ResetPasswordForm hash={resetHash} />;
+        return <ResetPasswordForm />;
       case 'confirmEmail':
         return <ConfirmEmailForm />;
     }
