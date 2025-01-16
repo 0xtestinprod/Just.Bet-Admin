@@ -4,24 +4,43 @@ import { FormEvent, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { authService } from '@/features/auth/services/auth.service';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 export default function RegisterForm() {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    firstName: '',
-    lastName: '',
-    country: '',
-    city: '',
-    phone: ''
-  });
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsLoading(true);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>): void {
-    throw new Error('Function not implemented.');
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      await authService.register({
+        email,
+        password,
+        confirmPassword
+      });
+
+      toast.success(
+        'Registration successful! Please check your email to confirm your account.'
+      );
+      router.push('/auth/signin');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Something went wrong');
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -30,72 +49,41 @@ export default function RegisterForm() {
         <Label htmlFor='email'>Email</Label>
         <Input
           id='email'
-          name='email'
           type='email'
-          value={formData.email}
-          onChange={handleChange}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           required
+          disabled={isLoading}
+          placeholder='name@example.com'
         />
       </div>
       <div className='space-y-2'>
         <Label htmlFor='password'>Password</Label>
         <Input
           id='password'
-          name='password'
           type='password'
-          value={formData.password}
-          onChange={handleChange}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           required
+          disabled={isLoading}
+          minLength={8}
         />
       </div>
       <div className='space-y-2'>
-        <Label htmlFor='firstName'>First Name</Label>
+        <Label htmlFor='confirmPassword'>Confirm Password</Label>
         <Input
-          id='firstName'
-          name='firstName'
-          value={formData.firstName}
-          onChange={handleChange}
+          id='confirmPassword'
+          type='password'
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
           required
+          disabled={isLoading}
+          minLength={8}
         />
       </div>
-      <div className='space-y-2'>
-        <Label htmlFor='lastName'>Last Name</Label>
-        <Input
-          id='lastName'
-          name='lastName'
-          value={formData.lastName}
-          onChange={handleChange}
-          required
-        />
-      </div>
-      <div className='space-y-2'>
-        <Label htmlFor='country'>Country</Label>
-        <Input
-          id='country'
-          name='country'
-          value={formData.country}
-          onChange={handleChange}
-        />
-      </div>
-      <div className='space-y-2'>
-        <Label htmlFor='city'>City</Label>
-        <Input
-          id='city'
-          name='city'
-          value={formData.city}
-          onChange={handleChange}
-        />
-      </div>
-      <div className='space-y-2'>
-        <Label htmlFor='phone'>Phone</Label>
-        <Input
-          id='phone'
-          name='phone'
-          value={formData.phone}
-          onChange={handleChange}
-        />
-      </div>
-      <Button type='submit'>Register</Button>
+      <Button type='submit' className='w-full' disabled={isLoading}>
+        {isLoading ? 'Creating account...' : 'Create account'}
+      </Button>
     </form>
   );
 }
