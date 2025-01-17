@@ -3,17 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import React from 'react';
 
 export default function OverViewLayout({
-  sales,
   pie_stats,
   bar_stats,
   area_stats,
-  player_stats
+  player_stats,
+  game_performance
 }: {
-  sales: React.ReactNode;
   pie_stats: React.ReactNode;
   bar_stats: React.ReactNode;
   area_stats: React.ReactNode;
   player_stats: React.ReactNode;
+  game_performance: React.ReactNode;
 }) {
   return (
     <PageContainer>
@@ -24,6 +24,7 @@ export default function OverViewLayout({
           </h2>
         </div> */}
         {player_stats}
+        {game_performance}
         {bar_stats}
         {area_stats}
         {pie_stats}
