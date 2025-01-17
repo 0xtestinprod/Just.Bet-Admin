@@ -1,8 +1,8 @@
-import { delay } from '@/constants/mock-api';
+import { getAllPlayers } from '@/api';
 import PlayerDashboard from '@/features/player-dashboard';
 
 export default async function BarStats() {
-  await await delay(1000);
+  const players = await getAllPlayers();
 
-  return <PlayerDashboard />;
+  return <PlayerDashboard initialPlayers={players} />;
 }

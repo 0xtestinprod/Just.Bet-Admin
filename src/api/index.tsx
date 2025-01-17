@@ -129,7 +129,11 @@ export interface GameResult {
 
 //#endregion
 
-// # Input/Output Player-Behavior Dashboard Types
+// #region Input/Output Games
+
+//#endregion
+
+// #region Input/Output Player-Behavior Dashboard Types
 
 // Token Transaction
 interface TokenTransaction {
@@ -226,6 +230,7 @@ export interface LoginResponseType {
   token: string;
   user: any; // Replace with your User type
 }
+
 //#endregion
 
 //#region Api Client
@@ -237,8 +242,6 @@ export class ApiClient {
   constructor(basePath = '/api') {
     const base_url = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
     this.basePath = `${base_url}${basePath}`;
-
-    console.log(this.basePath, 'basePath');
 
     this.client = axios.create({
       baseURL: this.basePath,
@@ -301,6 +304,7 @@ export class ApiClient {
   async getPlayerBehaviorDashboard(
     input: PlayerBehaviorInput
   ): Promise<DashboardStatisticsResponse> {
+    console.log(input);
     try {
       const response = await this.client.get(
         `games/stats/player/${input.address}`,
@@ -311,6 +315,7 @@ export class ApiClient {
           }
         }
       );
+      console.log(response.data);
       return response.data;
     } catch (error: any) {
       console.error('API Error:', {
@@ -325,75 +330,52 @@ export class ApiClient {
 
   async login(data: LoginDto): Promise<LoginResponseType> {
     try {
-      console.log('🚀 Login request:', data);
       const response = await this.post<LoginResponseType>(
         'auth/email/login',
         data
       );
-      console.log('✅ Login response:', response);
       return response.data;
     } catch (error) {
-      console.error('❌ Login error:', error);
       throw error;
     }
   }
 
   async register(data: RegisterDto): Promise<void> {
     try {
-      console.log('🚀 Register request:', data);
-      const response = await this.post('auth/email/register', data);
-      console.log('✅ Register response:', response);
+      await this.post('auth/email/register', data);
     } catch (error: any) {
-      console.error('❌ Register error:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        config: error.config
-      });
       throw error;
     }
   }
 
   async confirmEmail(hash: string): Promise<void> {
     try {
-      console.log('🚀 Confirm email request:', { hash });
-      const response = await this.post('auth/email/confirm', { hash });
-      console.log('✅ Confirm email response:', response);
+      await this.post('auth/email/confirm', { hash });
     } catch (error) {
-      console.error('❌ Confirm email error:', error);
       throw error;
     }
   }
 
   async forgotPassword(email: string): Promise<void> {
     try {
-      console.log('🚀 Forgot password request:', { email });
-      const response = await this.post('auth/forgot/password', { email });
-      console.log('✅ Forgot password response:', response);
+      await this.post('auth/forgot/password', { email });
     } catch (error) {
-      console.error('❌ Forgot password error:', error);
       throw error;
     }
   }
 
   async resetPassword(data: ResetPasswordDto): Promise<void> {
     try {
-      console.log('🚀 Reset password request:', data);
-      const response = await this.post('auth/reset/password', data);
-      console.log('✅ Reset password response:', response);
+      await this.post('auth/reset/password', data);
     } catch (error) {
-      console.error('❌ Reset password error:', error);
       throw error;
     }
   }
 
   async resetAuthUserPassword(data: AuthResetPasswordDto): Promise<void> {
     try {
-      console.log('🚀 Reset auth user password request:', data);
-      const response = await this.post('auth/reset/user/password', data);
-      console.log('✅ Reset auth user password response:', response);
+      await this.post('auth/reset/user/password', data);
     } catch (error) {
-      console.error('❌ Reset auth user password error:', error);
       throw error;
     }
   }
@@ -405,6 +387,22 @@ export class ApiClient {
   async deleteAccount(): Promise<void> {
     await this.delete('auth/me');
   }
+
+  // #region Player endpoints
+  async getAllPlayers(): Promise<string[]> {
+    try {
+      const response = await this.get<string[]>('games/players');
+      return response.data;
+    } catch (error: any) {
+      console.error('API Error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      throw error;
+    }
+  }
+  //#endregion
   //#endregion
 }
 
@@ -504,6 +502,18 @@ export function useDeleteAccount(): UseMutationHookResult<void, void> {
 }
 //#endregion
 
+// #region Player API Functions
+export async function getAllPlayers(): Promise<string[]> {
+  return defaultApiClient.getAllPlayers();
+}
+//#endregion
+
+// #region Player Hooks
+export function useGetAllPlayers(): UseQueryHookResult<string[]> {
+  return useQuery(() => defaultApiClient.getAllPlayers());
+}
+//#endregion
+
 export default {
   default: defaultApiClient,
   getPlayerBehaviorDashboard,
@@ -523,5 +533,7 @@ export default {
   useResetPassword,
   useResetAuthUserPassword,
   useLogout,
-  useDeleteAccount
+  useDeleteAccount,
+  getAllPlayers,
+  useGetAllPlayers
 };

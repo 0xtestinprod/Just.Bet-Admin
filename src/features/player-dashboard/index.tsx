@@ -1,6 +1,7 @@
 'use client';
 
 import * as PlayerBehavior from '@/models/player-behavior';
+import React, { useState, useEffect } from 'react';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,36 +12,16 @@ import {
   Coins,
   DollarSign,
   Gamepad2,
-  Repeat,
-  Users
+  Repeat
 } from 'lucide-react';
-import { useState } from 'react';
 import { PlayerCombobox } from './components/player-combox';
-
-export interface Player {
-  id: string;
-  address: string;
-}
+import { DashboardStatisticsResponse } from '@/models/player-behavior';
+import { ApiResponse } from '@/api';
 
 export interface TimeRange {
   label: string;
   value: 'day' | 'week' | 'month';
 }
-
-// Sample data - in real app this would come from API
-const players: Player[] = [
-  { id: '1', address: '0x220C795ee1af2B279d420eEAc7e16C79c6b90836' },
-  { id: '2', address: '0xE8b40b9cCb6615453A7d83e1B11B3B698206BB3E' },
-  { id: '3', address: '0x33Ff4D0d25199014F28655830796Fe4D4e0845cd' },
-  { id: '4', address: '0x33Ff4D0d25199014F28655830796Fe4D4e0845cd' },
-  { id: '5', address: '0x33Ff4D0d25199014F28655830796Fe4D4e0845cd' },
-  { id: '6', address: '0x33Ff4D0d25199014F28655830796Fe4D4e0845cd' },
-  { id: '7', address: '0x33Ff4D0d25199014F28655830796Fe4D4e0845cd' },
-  { id: '8', address: '0x33Ff4D0d25199014F28655830796Fe4D4e0845cd' },
-  { id: '9', address: '0x33Ff4D0d25199014F28655830796Fe4D4e0845cd' },
-  { id: '10', address: '0x33Ff4D0d25199014F28655830796Fe4D4e0845cd' },
-  { id: '11', address: '0x33Ff4D0d25199014F28655830796Fe4D4e0845cd' }
-];
 
 const timeRanges: TimeRange[] = [
   { label: 'Last 24 Hours', value: 'day' },
@@ -66,12 +47,24 @@ const getTimeRange = (
   }
 };
 
-export default function PlayerDashboard() {
+interface PlayerDashboardProps {
+  initialPlayers: string[];
+}
+
+export default function PlayerDashboard({
+  initialPlayers
+}: PlayerDashboardProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<string>(
-    players[0].address
+    initialPlayers[0]
   );
   const [selectedTimeRange, setSelectedTimeRange] =
     useState<TimeRange['value']>('day');
+
+  useEffect(() => {
+    if (initialPlayers && initialPlayers.length > 0) {
+      setSelectedPlayer(initialPlayers[0]);
+    }
+  }, [initialPlayers]);
 
   const { timeFrom, timeTo } = getTimeRange(selectedTimeRange);
 
@@ -81,9 +74,15 @@ export default function PlayerDashboard() {
     error
   } = PlayerBehavior.useGetPlayerBehaviorDashboard({
     address: selectedPlayer,
-    timeFrom: 1736601705,
-    timeTo: 1736607405
+    timeFrom,
+    timeTo
   });
+
+  console.log(dashboardData);
+
+  const data = (
+    dashboardData as ApiResponse<DashboardStatisticsResponse> | null
+  )?.data;
 
   if (loading) {
     return (
@@ -108,7 +107,10 @@ export default function PlayerDashboard() {
           </h1>
           <div className='flex flex-col gap-4 sm:flex-row'>
             <PlayerCombobox
-              players={players}
+              players={initialPlayers.map((address) => ({
+                id: address,
+                address
+              }))}
               selectedPlayer={selectedPlayer}
               setSelectedPlayer={setSelectedPlayer}
             />
@@ -150,11 +152,10 @@ export default function PlayerDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className='text-2xl font-bold'>
-                    {dashboardData?.overview?.totalGamesPlayed ?? 0}
+                    {data?.overview?.totalGamesPlayed ?? 0}
                   </div>
                   <p className='text-xs text-muted-foreground'>
-                    Current streak:{' '}
-                    {dashboardData?.overview?.currentStreak ?? -1} games
+                    Current streak: {data?.overview?.currentStreak ?? -1} games
                   </p>
                 </CardContent>
               </Card>
@@ -167,13 +168,11 @@ export default function PlayerDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className='text-2xl font-bold'>
-                    {dashboardData?.overview.winLossRatio?.toFixed(2) ?? '0.00'}
+                    {data?.overview?.winLossRatio?.toFixed(2) ?? '0.00'}
                   </div>
                   <p className='text-xs text-muted-foreground'>
-                    {(
-                      (dashboardData?.overview.winLossRatio ?? 0) * 100
-                    ).toFixed(0)}
-                    % win rate
+                    {((data?.overview?.winLossRatio ?? 0) * 100).toFixed(0)}%
+                    win rate
                   </p>
                 </CardContent>
               </Card>
@@ -187,18 +186,15 @@ export default function PlayerDashboard() {
                 <CardContent>
                   <div
                     className={`text-2xl font-bold ${
-                      (dashboardData?.overview.lifetimeValue ?? 0) < 0
+                      (data?.overview?.lifetimeValue ?? 0) < 0
                         ? 'text-red-500'
                         : ''
                     }`}
                   >
-                    $
-                    {dashboardData?.overview.lifetimeValue?.toFixed(2) ??
-                      '0.00'}
+                    ${data?.overview?.lifetimeValue?.toFixed(2) ?? '0.00'}
                   </div>
                   <p className='text-xs text-muted-foreground'>
-                    {dashboardData?.overview.uniqueTokensUsed} unique tokens
-                    used
+                    {data?.overview?.uniqueTokensUsed} unique tokens used
                   </p>
                 </CardContent>
               </Card>
@@ -211,13 +207,10 @@ export default function PlayerDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className='text-2xl font-bold'>
-                    $
-                    {dashboardData?.betting?.averageBetAmountUsd?.toFixed(2) ??
-                      '0.00'}
+                    ${data?.betting?.averageBetAmountUsd?.toFixed(2) ?? '0.00'}
                   </div>
                   <p className='text-xs text-muted-foreground'>
-                    Per game: $
-                    {dashboardData?.betting?.betPerGame?.toFixed(2) ?? '0.00'}
+                    Per game: ${data?.betting?.betPerGame?.toFixed(2) ?? '0.00'}
                   </p>
                 </CardContent>
               </Card>
@@ -235,7 +228,7 @@ export default function PlayerDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className='text-2xl font-bold'>
-                    {dashboardData?.session?.totalSessions ?? 0}
+                    {data?.session?.totalSessions ?? 0}
                   </div>
                 </CardContent>
               </Card>
@@ -249,17 +242,14 @@ export default function PlayerDashboard() {
                 <CardContent>
                   <div className='text-2xl font-bold'>
                     {Math.floor(
-                      (dashboardData?.session.averageSessionDuration ?? 0) /
-                        3600
+                      (data?.session?.averageSessionDuration ?? 0) / 3600
                     )}
                     h
                   </div>
                   <p className='text-xs text-muted-foreground'>
                     Total:{' '}
-                    {Math.floor(
-                      (dashboardData?.session.totalPlayTime ?? 0) / 3600
-                    )}
-                    h played
+                    {Math.floor((data?.session?.totalPlayTime ?? 0) / 3600)}h
+                    played
                   </p>
                 </CardContent>
               </Card>
@@ -272,8 +262,7 @@ export default function PlayerDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className='text-2xl font-bold'>
-                    {dashboardData?.session?.averageBettingStreak?.toFixed(1) ??
-                      '0.0'}
+                    {data?.session?.averageBettingStreak?.toFixed(1) ?? '0.0'}
                   </div>
                   <p className='text-xs text-muted-foreground'>
                     Average streak length
@@ -291,29 +280,39 @@ export default function PlayerDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className='space-y-2'>
-                    {dashboardData?.financial?.deposits?.map((deposit, i) => (
-                      <div
-                        key={i}
-                        className='flex items-center justify-between py-2'
-                      >
-                        <div className='space-y-1'>
-                          <p className='text-sm font-medium leading-none'>
-                            {deposit?.token ?? 'Unknown'}
-                          </p>
-                          <p className='text-sm text-muted-foreground'>
-                            {new Date(
-                              deposit?.timestamp ?? 0
-                            ).toLocaleDateString()}
-                          </p>
+                    {data?.financial?.deposits?.map(
+                      (
+                        deposit: {
+                          token: string;
+                          amount: number;
+                          amountUsd: number;
+                          timestamp: number;
+                        },
+                        i: number
+                      ) => (
+                        <div
+                          key={i}
+                          className='flex items-center justify-between py-2'
+                        >
+                          <div className='space-y-1'>
+                            <p className='text-sm font-medium leading-none'>
+                              {deposit?.token ?? 'Unknown'}
+                            </p>
+                            <p className='text-sm text-muted-foreground'>
+                              {new Date(
+                                deposit?.timestamp ?? 0
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className='flex items-center gap-2'>
+                            <ArrowUp className='h-4 w-4 text-green-500' />
+                            <span className='font-medium'>
+                              ${deposit?.amountUsd?.toFixed(2) ?? '0.00'}
+                            </span>
+                          </div>
                         </div>
-                        <div className='flex items-center gap-2'>
-                          <ArrowUp className='h-4 w-4 text-green-500' />
-                          <span className='font-medium'>
-                            ${deposit?.amountUsd?.toFixed(2) ?? '0.00'}
-                          </span>
-                        </div>
-                      </div>
-                    )) ?? []}
+                      )
+                    ) ?? []}
                   </div>
                 </CardContent>
               </Card>
@@ -323,8 +322,16 @@ export default function PlayerDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className='space-y-2'>
-                    {dashboardData?.financial?.withdrawals?.map(
-                      (withdrawal, i) => (
+                    {data?.financial?.withdrawals?.map(
+                      (
+                        withdrawal: {
+                          token: string;
+                          amount: number;
+                          amountUsd: number;
+                          timestamp: number;
+                        },
+                        i: number
+                      ) => (
                         <div
                           key={i}
                           className='flex items-center justify-between py-2'
@@ -365,13 +372,13 @@ export default function PlayerDashboard() {
                     <div className='flex items-center justify-between'>
                       <span className='text-sm'>Max Win Streak</span>
                       <span className='font-medium text-green-500'>
-                        {dashboardData?.betting?.maxWinStreak ?? 0} games
+                        {data?.betting?.maxWinStreak ?? 0} games
                       </span>
                     </div>
                     <div className='flex items-center justify-between'>
                       <span className='text-sm'>Max Lose Streak</span>
                       <span className='font-medium text-red-500'>
-                        {dashboardData?.betting?.maxLoseStreak ?? 0} games
+                        {data?.betting?.maxLoseStreak ?? 0} games
                       </span>
                     </div>
                   </div>
@@ -387,17 +394,14 @@ export default function PlayerDashboard() {
                       <span className='text-sm'>Average Bet (USD)</span>
                       <span className='font-medium'>
                         $
-                        {dashboardData?.betting?.averageBetAmountUsd?.toFixed(
-                          2
-                        ) ?? '0.00'}
+                        {data?.betting?.averageBetAmountUsd?.toFixed(2) ??
+                          '0.00'}
                       </span>
                     </div>
                     <div className='flex items-center justify-between'>
                       <span className='text-sm'>Bet Per Game</span>
                       <span className='font-medium'>
-                        $
-                        {dashboardData?.betting?.betPerGame?.toFixed(2) ??
-                          '0.00'}
+                        ${data?.betting?.betPerGame?.toFixed(2) ?? '0.00'}
                       </span>
                     </div>
                   </div>
