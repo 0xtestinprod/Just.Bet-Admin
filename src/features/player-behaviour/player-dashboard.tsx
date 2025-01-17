@@ -102,9 +102,7 @@ export default function PlayerDashboard({
     <div className='flex w-full flex-col gap-4'>
       <div className='flex flex-col gap-4'>
         <div className='flex flex-col justify-between gap-4 sm:flex-row'>
-          <h1 className='text-2xl font-bold tracking-tight'>
-            Player Dashboard
-          </h1>
+          <h1 className='text-2xl font-bold tracking-tight'>Player Behavior</h1>
           <div className='flex flex-col gap-4 sm:flex-row'>
             <PlayerCombobox
               players={initialPlayers.map((address) => ({

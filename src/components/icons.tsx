@@ -1,3 +1,4 @@
+import { DiscordLogoIcon } from '@radix-ui/react-icons';
 import {
   AlertTriangle,
   ArrowRight,
@@ -64,6 +65,7 @@ export const Icons = {
   sun: SunMedium,
   moon: Moon,
   laptop: Laptop,
+  social: DiscordLogoIcon,
   gitHub: ({ ...props }: LucideProps) => (
     <svg
       aria-hidden='true'

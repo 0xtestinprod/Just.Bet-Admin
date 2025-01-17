@@ -28,6 +28,14 @@ export const navItems: NavItem[] = [
     shortcut: ['p', 'p'],
     isActive: false,
     items: [] // No child items
+  },
+  {
+    title: 'Social Stats',
+    url: '/dashboard/social',
+    icon: 'social',
+    shortcut: ['s', 's'],
+    isActive: false,
+    items: []
   }
   // {
   //   title: 'Account',
