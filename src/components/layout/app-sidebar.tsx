@@ -53,7 +53,12 @@ export default function AppSidebar() {
   const { data: session } = useSession();
   const pathname = usePathname();
   const { state, isMobile } = useSidebar();
-
+  const handleLogout = () => {
+    signOut({
+      callbackUrl: '/', // or whatever path you want to redirect to
+      redirect: true
+    });
+  };
   return (
     <Sidebar collapsible='icon'>
       <SidebarHeader>
@@ -202,7 +207,7 @@ export default function AppSidebar() {
                   </DropdownMenuItem>
                 </DropdownMenuGroup> */}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => signOut()}>
+                <DropdownMenuItem onClick={handleLogout}>
                   <LogOut />
                   Log out
                 </DropdownMenuItem>

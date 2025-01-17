@@ -6,6 +6,6 @@ export default async function Dashboard() {
   if (!session) {
     return redirect('/');
   } else {
-    redirect('/dashboard/overview');
+    redirect('/dashboard/player-dashboard');
   }
 }

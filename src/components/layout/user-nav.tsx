@@ -14,6 +14,13 @@ import {
 import { signOut, useSession } from 'next-auth/react';
 export function UserNav() {
   const { data: session } = useSession();
+
+  const handleLogout = () => {
+    signOut({
+      callbackUrl: '/', // or whatever path you want to redirect to
+      redirect: true
+    });
+  };
   if (session) {
     return (
       <DropdownMenu>
@@ -56,7 +63,7 @@ export function UserNav() {
             <DropdownMenuItem>New Team</DropdownMenuItem>
           </DropdownMenuGroup> */}
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => signOut()}>
+          <DropdownMenuItem onClick={handleLogout}>
             Log out
             <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
           </DropdownMenuItem>
