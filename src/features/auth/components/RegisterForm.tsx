@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -5,13 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
 import { type RegisterDto, useRegister } from '@/models/auth';
 
 const EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 
-export default function RegisterForm() {
-  const router = useRouter();
+interface RegisterFormProps {
+  onSuccess?: () => void;
+}
+
+export default function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [register, { loading }] = useRegister();
   const {
     register: registerField,
@@ -26,10 +29,7 @@ export default function RegisterForm() {
       password: '',
       confirmPassword: '',
       firstName: '',
-      lastName: '',
-      country: '',
-      city: '',
-      phone: ''
+      lastName: ''
     }
   });
 
@@ -47,9 +47,9 @@ export default function RegisterForm() {
     try {
       await register(registerData);
       toast.success(
-        'Registration successful! Please check your email to confirm your account.'
+        'Registration successful! Please sign in with your credentials.'
       );
-      router.push('/auth/signin');
+      onSuccess?.();
     } catch (error: any) {
       console.error('Registration error:', {
         message: error.message,
@@ -178,38 +178,6 @@ export default function RegisterForm() {
             {errors.confirmPassword.message}
           </p>
         )}
-      </div>
-
-      <div className='grid grid-cols-2 gap-4'>
-        <div className='space-y-2'>
-          <Label htmlFor='country'>Country (Optional)</Label>
-          <Input
-            id='country'
-            {...registerField('country')}
-            disabled={loading}
-            placeholder='United States'
-          />
-        </div>
-
-        <div className='space-y-2'>
-          <Label htmlFor='city'>City (Optional)</Label>
-          <Input
-            id='city'
-            {...registerField('city')}
-            disabled={loading}
-            placeholder='New York'
-          />
-        </div>
-      </div>
-
-      <div className='space-y-2'>
-        <Label htmlFor='phone'>Phone Number (Optional)</Label>
-        <Input
-          id='phone'
-          {...registerField('phone')}
-          disabled={loading}
-          placeholder='+1234567890'
-        />
       </div>
 
       <Button type='submit' className='w-full' disabled={loading}>

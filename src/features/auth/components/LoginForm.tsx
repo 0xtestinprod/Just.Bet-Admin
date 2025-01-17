@@ -104,22 +104,22 @@ export default function LoginForm() {
         )}
       </div>
 
-      <div className='text-sm'>
+      {/* <div className='text-sm'>
         <Link href='/forgot-password' className='text-primary hover:underline'>
           Forgot password?
         </Link>
-      </div>
+      </div> */}
 
       <Button type='submit' className='w-full' disabled={loading}>
         {loading ? 'Signing in...' : 'Sign in'}
       </Button>
 
-      <div className='text-center text-sm'>
+      {/* <div className='text-center text-sm'>
         New user?{' '}
         <Link href='/register' className='text-primary hover:underline'>
           Create an account
         </Link>
-      </div>
+      </div> */}
     </form>
   );
 }

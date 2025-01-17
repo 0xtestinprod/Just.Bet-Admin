@@ -201,9 +201,6 @@ export interface RegisterDto {
   password: string;
   firstName: string;
   lastName: string;
-  country?: string;
-  city?: string;
-  phone?: string;
 }
 
 export interface ResetPasswordDto {
