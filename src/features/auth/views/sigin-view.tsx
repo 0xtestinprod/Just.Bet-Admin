@@ -20,14 +20,13 @@ export default function SignInViewPage() {
   const [currentForm, setCurrentForm] = useState<
     'login' | 'register' | 'forgotPassword' | 'resetPassword' | 'confirmEmail'
   >('login');
-  const [resetHash, setResetHash] = useState('');
 
   const renderForm = () => {
     switch (currentForm) {
       case 'login':
         return <LoginForm />;
       case 'register':
-        return <RegisterForm />;
+        return <RegisterForm onSuccess={() => setCurrentForm('login')} />;
       case 'forgotPassword':
         return <ForgotPasswordForm />;
       case 'resetPassword':

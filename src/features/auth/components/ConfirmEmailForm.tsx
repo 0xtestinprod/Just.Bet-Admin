@@ -1,29 +1,56 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { type AuthConfirmEmailDto, useConfirmEmail } from '@/models/auth';
 
 export default function ConfirmEmailForm() {
-  const [hash, setHash] = useState('');
+  const router = useRouter();
+  const [confirmEmail, { loading }] = useConfirmEmail();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<AuthConfirmEmailDto>({
+    mode: 'onSubmit',
+    defaultValues: {
+      hash: ''
+    }
+  });
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>): void {
-    throw new Error('Function not implemented.');
-  }
+  const onSubmit = async (data: AuthConfirmEmailDto) => {
+    try {
+      await confirmEmail(data.hash);
+      toast.success('Email confirmed successfully');
+      router.push('/auth/signin');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Something went wrong');
+    }
+  };
 
   return (
-    <form onSubmit={handleSubmit} className='space-y-4'>
+    <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
       <div className='space-y-2'>
         <Label htmlFor='hash'>Confirmation Code</Label>
         <Input
           id='hash'
-          value={hash}
-          onChange={(e) => setHash(e.target.value)}
-          required
+          {...register('hash', {
+            required: 'Confirmation code is required'
+          })}
+          disabled={loading}
+          aria-invalid={!!errors.hash}
         />
+        {errors.hash && (
+          <p className='text-sm text-red-500'>{errors.hash.message}</p>
+        )}
       </div>
-      <Button type='submit'>Confirm Email</Button>
+      <Button type='submit' className='w-full' disabled={loading}>
+        {loading ? 'Confirming...' : 'Confirm Email'}
+      </Button>
     </form>
   );
 }

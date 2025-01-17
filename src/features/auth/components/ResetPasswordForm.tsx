@@ -1,80 +1,94 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { authService } from '@/features/auth/services/auth.service';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { type ResetPasswordDto, useResetPassword } from '@/models/auth';
 
 export default function ResetPasswordForm() {
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const hash = searchParams.get('hash');
+  const [resetPassword, { loading }] = useResetPassword();
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setIsLoading(true);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch
+  } = useForm<ResetPasswordDto>({
+    mode: 'onSubmit',
+    defaultValues: {
+      hash: hash || '',
+      password: '',
+      confirmPassword: ''
+    }
+  });
 
+  const password = watch('password');
+
+  const onSubmit = async (data: ResetPasswordDto) => {
     if (!hash) {
       toast.error('Invalid reset link');
       return;
     }
 
-    if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      await authService.resetPassword({
-        hash,
-        password,
-        confirmPassword
-      });
-
+      await resetPassword(data);
       toast.success('Password has been reset successfully');
       router.push('/auth/signin');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Something went wrong');
-    } finally {
-      setIsLoading(false);
     }
-  }
+  };
 
   return (
-    <form onSubmit={handleSubmit} className='space-y-4'>
+    <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
       <div className='space-y-2'>
         <Label htmlFor='password'>New Password</Label>
         <Input
           id='password'
           type='password'
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          disabled={isLoading}
-          minLength={8}
+          {...register('password', {
+            required: 'Password is required',
+            minLength: {
+              value: 8,
+              message: 'Password must be at least 8 characters'
+            }
+          })}
+          disabled={loading}
+          aria-invalid={!!errors.password}
         />
+        {errors.password && (
+          <p className='text-sm text-red-500'>{errors.password.message}</p>
+        )}
       </div>
+
       <div className='space-y-2'>
         <Label htmlFor='confirmPassword'>Confirm New Password</Label>
         <Input
           id='confirmPassword'
           type='password'
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-          disabled={isLoading}
-          minLength={8}
+          {...register('confirmPassword', {
+            required: 'Please confirm your password',
+            validate: (value) =>
+              value === password || 'The passwords do not match'
+          })}
+          disabled={loading}
+          aria-invalid={!!errors.confirmPassword}
         />
+        {errors.confirmPassword && (
+          <p className='text-sm text-red-500'>
+            {errors.confirmPassword.message}
+          </p>
+        )}
       </div>
-      <Button type='submit' className='w-full' disabled={isLoading}>
-        {isLoading ? 'Resetting password...' : 'Reset password'}
+
+      <Button type='submit' className='w-full' disabled={loading}>
+        {loading ? 'Resetting password...' : 'Reset password'}
       </Button>
     </form>
   );
