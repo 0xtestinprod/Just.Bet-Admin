@@ -80,7 +80,7 @@ export function useMutation<InputT, ResultT>(
 
 //#endregion
 
-//#region Games Types
+//#region Games Entities
 
 export interface GameCollection {
   id: string;
@@ -233,6 +233,22 @@ export interface LoginResponseType {
 
 //#endregion
 
+//#region Game Performance Types
+export interface GamePerformanceResponse {
+  winRatio: number;
+  frequency: number;
+  winsPercentage: number;
+  averageBetSize: number;
+  revenue: number;
+  profit: number;
+  losses: number;
+  profitLossRatio: number;
+  profitPercent: number;
+  game: string;
+}
+
+//#endregion
+
 //#region Api Client
 export class ApiClient {
   private basePath: string;
@@ -298,8 +314,6 @@ export class ApiClient {
     return response.data;
   }
 
-  // #region Auth endpoints
-
   //#region Player Behavior Dashboard endpoints
   async getPlayerBehaviorDashboard(
     input: PlayerBehaviorInput
@@ -328,6 +342,11 @@ export class ApiClient {
   }
   //#endregion
 
+  //#region Game Performance endpoints
+  //TODO: endpoints all, performance, performance-by-token
+  //#endregion
+
+  //#region Auth endpoints
   async login(data: LoginDto): Promise<LoginResponseType> {
     try {
       const response = await this.post<LoginResponseType>(
@@ -387,6 +406,7 @@ export class ApiClient {
   async deleteAccount(): Promise<void> {
     await this.delete('auth/me');
   }
+  //#endregion
 
   // #region Player endpoints
   async getAllPlayers(): Promise<string[]> {
@@ -403,7 +423,27 @@ export class ApiClient {
     }
   }
   //#endregion
-  //#endregion
+
+  async getAllGames(): Promise<string[]> {
+    const response = await this.get<string[]>('games/all');
+    return response.data;
+  }
+
+  async getGamePerformance(): Promise<GamePerformanceResponse[]> {
+    const response = await this.get<GamePerformanceResponse[]>(
+      'games/stats/performance'
+    );
+    return response.data;
+  }
+
+  async getGamePerformanceByToken(
+    address: string
+  ): Promise<GamePerformanceResponse[]> {
+    const response = await this.get<GamePerformanceResponse[]>(
+      `games/stats/performance/token/${address}`
+    );
+    return response.data;
+  }
 }
 
 const defaultApiClient = new ApiClient();
@@ -514,6 +554,40 @@ export function useGetAllPlayers(): UseQueryHookResult<string[]> {
 }
 //#endregion
 
+//#region Game Performance API Functions
+export async function getAllGames(): Promise<string[]> {
+  return defaultApiClient.getAllGames();
+}
+
+export async function getGamePerformance(): Promise<GamePerformanceResponse[]> {
+  return defaultApiClient.getGamePerformance();
+}
+
+export async function getGamePerformanceByToken(
+  address: string
+): Promise<GamePerformanceResponse[]> {
+  return defaultApiClient.getGamePerformanceByToken(address);
+}
+//#endregion
+
+//#region Game Performance Hooks
+export function useGetAllGames(): UseQueryHookResult<string[]> {
+  return useQuery(() => defaultApiClient.getAllGames());
+}
+
+export function useGetGamePerformance(): UseQueryHookResult<
+  GamePerformanceResponse[]
+> {
+  return useQuery(() => defaultApiClient.getGamePerformance());
+}
+
+export function useGetGamePerformanceByToken(
+  address: string
+): UseQueryHookResult<GamePerformanceResponse[]> {
+  return useQuery(() => defaultApiClient.getGamePerformanceByToken(address));
+}
+//#endregion
+
 export default {
   default: defaultApiClient,
   getPlayerBehaviorDashboard,
@@ -535,5 +609,11 @@ export default {
   useLogout,
   useDeleteAccount,
   getAllPlayers,
-  useGetAllPlayers
+  useGetAllPlayers,
+  getAllGames,
+  getGamePerformance,
+  getGamePerformanceByToken,
+  useGetAllGames,
+  useGetGamePerformance,
+  useGetGamePerformanceByToken
 };

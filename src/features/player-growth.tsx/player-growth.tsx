@@ -37,7 +37,7 @@ export function PlayerGrowth() {
           axisLine={false}
           tickFormatter={(value) => `${value}`}
         />
-        <Tooltip />
+        <Tooltip contentStyle={{ backgroundColor: '#08060f' }} />
         <Line
           type='monotone'
           dataKey='value'
