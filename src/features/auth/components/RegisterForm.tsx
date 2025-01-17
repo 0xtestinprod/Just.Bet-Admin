@@ -1,88 +1,219 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { authService } from '@/features/auth/services/auth.service';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { type RegisterDto, useRegister } from '@/models/auth';
+
+const EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 
 export default function RegisterForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const [register, { loading }] = useRegister();
+  const {
+    register: registerField,
+    handleSubmit,
+    formState: { errors },
+    watch,
+    setError
+  } = useForm<RegisterDto & { confirmPassword: string }>({
+    mode: 'onSubmit',
+    defaultValues: {
+      email: '',
+      password: '',
+      confirmPassword: '',
+      firstName: '',
+      lastName: '',
+      country: '',
+      city: '',
+      phone: ''
+    }
+  });
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setIsLoading(true);
+  const password = watch('password');
 
-    if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
-      setIsLoading(false);
+  const onSubmit = async (data: RegisterDto & { confirmPassword: string }) => {
+    if (data.password !== data.confirmPassword) {
+      setError('confirmPassword', { message: 'Passwords do not match' });
       return;
     }
 
-    try {
-      await authService.register({
-        email,
-        password,
-        confirmPassword
-      });
+    // Remove confirmPassword before sending to API
+    const { confirmPassword, ...registerData } = data;
 
+    try {
+      await register(registerData);
       toast.success(
         'Registration successful! Please check your email to confirm your account.'
       );
       router.push('/auth/signin');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Something went wrong');
-    } finally {
-      setIsLoading(false);
+      console.error('Registration error:', {
+        message: error.message,
+        response: error.response?.data
+      });
+
+      // Handle validation errors
+      if (error.response?.status === 422) {
+        const validationErrors = error.response.data.message;
+        if (typeof validationErrors === 'string') {
+          toast.error(validationErrors);
+        } else if (Array.isArray(validationErrors)) {
+          // Set form errors if they match field names
+          validationErrors.forEach((errorMsg: string) => {
+            const field = errorMsg.toLowerCase();
+            if (field.includes('email')) {
+              setError('email', { message: errorMsg });
+            } else if (field.includes('password')) {
+              setError('password', { message: errorMsg });
+            } else if (field.includes('firstname')) {
+              setError('firstName', { message: errorMsg });
+            } else if (field.includes('lastname')) {
+              setError('lastName', { message: errorMsg });
+            }
+          });
+          toast.error('Please fix the validation errors');
+        }
+      } else {
+        toast.error(error.response?.data?.message || 'Something went wrong');
+      }
     }
-  }
+  };
 
   return (
-    <form onSubmit={handleSubmit} className='space-y-4'>
+    <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
       <div className='space-y-2'>
         <Label htmlFor='email'>Email</Label>
         <Input
           id='email'
           type='email'
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          disabled={isLoading}
+          {...registerField('email', {
+            required: 'Email is required',
+            pattern: {
+              value: EMAIL_REGEX,
+              message: 'Please enter a valid email address'
+            }
+          })}
+          disabled={loading}
           placeholder='name@example.com'
+          aria-invalid={!!errors.email}
         />
+        {errors.email && (
+          <p className='text-sm text-red-500'>{errors.email.message}</p>
+        )}
       </div>
+
+      <div className='grid grid-cols-2 gap-4'>
+        <div className='space-y-2'>
+          <Label htmlFor='firstName'>First Name</Label>
+          <Input
+            id='firstName'
+            {...registerField('firstName', {
+              required: 'First name is required'
+            })}
+            disabled={loading}
+            placeholder='John'
+            aria-invalid={!!errors.firstName}
+          />
+          {errors.firstName && (
+            <p className='text-sm text-red-500'>{errors.firstName.message}</p>
+          )}
+        </div>
+
+        <div className='space-y-2'>
+          <Label htmlFor='lastName'>Last Name</Label>
+          <Input
+            id='lastName'
+            {...registerField('lastName', {
+              required: 'Last name is required'
+            })}
+            disabled={loading}
+            placeholder='Doe'
+            aria-invalid={!!errors.lastName}
+          />
+          {errors.lastName && (
+            <p className='text-sm text-red-500'>{errors.lastName.message}</p>
+          )}
+        </div>
+      </div>
+
       <div className='space-y-2'>
         <Label htmlFor='password'>Password</Label>
         <Input
           id='password'
           type='password'
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          disabled={isLoading}
-          minLength={8}
+          {...registerField('password', {
+            required: 'Password is required',
+            minLength: {
+              value: 6,
+              message: 'Password must be at least 6 characters'
+            }
+          })}
+          disabled={loading}
+          aria-invalid={!!errors.password}
         />
+        {errors.password && (
+          <p className='text-sm text-red-500'>{errors.password.message}</p>
+        )}
       </div>
+
       <div className='space-y-2'>
         <Label htmlFor='confirmPassword'>Confirm Password</Label>
         <Input
           id='confirmPassword'
           type='password'
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-          disabled={isLoading}
-          minLength={8}
+          {...registerField('confirmPassword', {
+            required: 'Please confirm your password',
+            validate: (value) =>
+              value === password || 'The passwords do not match'
+          })}
+          disabled={loading}
+          aria-invalid={!!errors.confirmPassword}
+        />
+        {errors.confirmPassword && (
+          <p className='text-sm text-red-500'>
+            {errors.confirmPassword.message}
+          </p>
+        )}
+      </div>
+
+      <div className='grid grid-cols-2 gap-4'>
+        <div className='space-y-2'>
+          <Label htmlFor='country'>Country (Optional)</Label>
+          <Input
+            id='country'
+            {...registerField('country')}
+            disabled={loading}
+            placeholder='United States'
+          />
+        </div>
+
+        <div className='space-y-2'>
+          <Label htmlFor='city'>City (Optional)</Label>
+          <Input
+            id='city'
+            {...registerField('city')}
+            disabled={loading}
+            placeholder='New York'
+          />
+        </div>
+      </div>
+
+      <div className='space-y-2'>
+        <Label htmlFor='phone'>Phone Number (Optional)</Label>
+        <Input
+          id='phone'
+          {...registerField('phone')}
+          disabled={loading}
+          placeholder='+1234567890'
         />
       </div>
-      <Button type='submit' className='w-full' disabled={isLoading}>
-        {isLoading ? 'Creating account...' : 'Create account'}
+
+      <Button type='submit' className='w-full' disabled={loading}>
+        {loading ? 'Creating account...' : 'Create account'}
       </Button>
     </form>
   );

@@ -8,22 +8,19 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
+import { type LoginDto, useLogin } from '@/models/auth';
 
 const EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 
-type FormData = {
-  email: string;
-  password: string;
-};
-
 export default function LoginForm() {
   const router = useRouter();
+  const [login, { loading }] = useLogin();
   const {
     register,
     handleSubmit,
-    formState: { isSubmitting, errors },
+    formState: { errors },
     setError
-  } = useForm<FormData>({
+  } = useForm<LoginDto>({
     mode: 'onSubmit',
     defaultValues: {
       email: '',
@@ -31,7 +28,7 @@ export default function LoginForm() {
     }
   });
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: LoginDto) => {
     try {
       const result = await signIn('credentials', {
         email: data.email,
@@ -54,8 +51,9 @@ export default function LoginForm() {
       toast.success('Logged in successfully');
       router.push('/dashboard');
       router.refresh();
-    } catch (error) {
-      toast.error('Something went wrong');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error(error.response?.data?.message || 'Something went wrong');
     }
   };
 
@@ -73,7 +71,7 @@ export default function LoginForm() {
               message: 'Please enter a valid email address'
             }
           })}
-          disabled={isSubmitting}
+          disabled={loading}
           placeholder='name@example.com'
           aria-invalid={!!errors.email}
         />
@@ -98,7 +96,7 @@ export default function LoginForm() {
               message: 'Password must be between 6 and 20 characters'
             }
           })}
-          disabled={isSubmitting}
+          disabled={loading}
           aria-invalid={!!errors.password}
         />
         {errors.password && (
@@ -112,8 +110,8 @@ export default function LoginForm() {
         </Link>
       </div>
 
-      <Button type='submit' className='w-full' disabled={isSubmitting}>
-        {isSubmitting ? 'Signing in...' : 'Sign in'}
+      <Button type='submit' className='w-full' disabled={loading}>
+        {loading ? 'Signing in...' : 'Sign in'}
       </Button>
 
       <div className='text-center text-sm'>

@@ -190,6 +190,47 @@ export interface DashboardStatisticsResponse {
 
 //#endregion
 
+//#region Auth Types
+export interface LoginDto {
+  email: string;
+  password: string;
+}
+
+export interface RegisterDto {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  country?: string;
+  city?: string;
+  phone?: string;
+}
+
+export interface ResetPasswordDto {
+  hash: string;
+  password: string;
+  confirmPassword: string;
+}
+
+export interface AuthResetPasswordDto {
+  password: string;
+  confirmPassword: string;
+}
+
+export interface AuthConfirmEmailDto {
+  hash: string;
+}
+
+export interface AuthForgotPasswordDto {
+  email: string;
+}
+
+export interface LoginResponseType {
+  token: string;
+  user: any; // Replace with your User type
+}
+//#endregion
+
 //#region Api Client
 export class ApiClient {
   private basePath: string;
@@ -248,6 +289,17 @@ export class ApiClient {
     return response.data;
   }
 
+  protected async delete<T>(path: string): Promise<ApiResponse<T>> {
+    const response = await this.client.delete(path, {
+      headers: {
+        ...this.getHeaders()
+      }
+    });
+    return response.data;
+  }
+
+  // #region Auth endpoints
+
   //#region Player Behavior Dashboard endpoints
   async getPlayerBehaviorDashboard(
     input: PlayerBehaviorInput
@@ -262,7 +314,6 @@ export class ApiClient {
           }
         }
       );
-      console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('API Error:', {
@@ -272,6 +323,90 @@ export class ApiClient {
       });
       throw error;
     }
+  }
+  //#endregion
+
+  async login(data: LoginDto): Promise<LoginResponseType> {
+    try {
+      console.log('🚀 Login request:', data);
+      const response = await this.post<LoginResponseType>(
+        'auth/email/login',
+        data
+      );
+      console.log('✅ Login response:', response);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Login error:', error);
+      throw error;
+    }
+  }
+
+  async register(data: RegisterDto): Promise<void> {
+    try {
+      console.log('🚀 Register request:', data);
+      const response = await this.post('auth/email/register', data);
+      console.log('✅ Register response:', response);
+    } catch (error: any) {
+      console.error('❌ Register error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config
+      });
+      throw error;
+    }
+  }
+
+  async confirmEmail(hash: string): Promise<void> {
+    try {
+      console.log('🚀 Confirm email request:', { hash });
+      const response = await this.post('auth/email/confirm', { hash });
+      console.log('✅ Confirm email response:', response);
+    } catch (error) {
+      console.error('❌ Confirm email error:', error);
+      throw error;
+    }
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    try {
+      console.log('🚀 Forgot password request:', { email });
+      const response = await this.post('auth/forgot/password', { email });
+      console.log('✅ Forgot password response:', response);
+    } catch (error) {
+      console.error('❌ Forgot password error:', error);
+      throw error;
+    }
+  }
+
+  async resetPassword(data: ResetPasswordDto): Promise<void> {
+    try {
+      console.log('🚀 Reset password request:', data);
+      const response = await this.post('auth/reset/password', data);
+      console.log('✅ Reset password response:', response);
+    } catch (error) {
+      console.error('❌ Reset password error:', error);
+      throw error;
+    }
+  }
+
+  async resetAuthUserPassword(data: AuthResetPasswordDto): Promise<void> {
+    try {
+      console.log('🚀 Reset auth user password request:', data);
+      const response = await this.post('auth/reset/user/password', data);
+      console.log('✅ Reset auth user password response:', response);
+    } catch (error) {
+      console.error('❌ Reset auth user password error:', error);
+      throw error;
+    }
+  }
+
+  async logout(): Promise<void> {
+    await this.post('auth/logout', {});
+  }
+
+  async deleteAccount(): Promise<void> {
+    await this.delete('auth/me');
   }
   //#endregion
 }
@@ -296,8 +431,100 @@ export function useGetPlayerBehaviorDashboard(
 }
 //#endregion
 
+// #region Auth API Functions
+export async function login(data: LoginDto): Promise<LoginResponseType> {
+  return defaultApiClient.login(data);
+}
+
+export async function register(data: RegisterDto): Promise<void> {
+  return defaultApiClient.register(data);
+}
+
+export async function confirmEmail(hash: string): Promise<void> {
+  return defaultApiClient.confirmEmail(hash);
+}
+
+export async function forgotPassword(email: string): Promise<void> {
+  return defaultApiClient.forgotPassword(email);
+}
+
+export async function resetPassword(data: ResetPasswordDto): Promise<void> {
+  return defaultApiClient.resetPassword(data);
+}
+
+export async function resetAuthUserPassword(
+  data: AuthResetPasswordDto
+): Promise<void> {
+  return defaultApiClient.resetAuthUserPassword(data);
+}
+
+export async function logout(): Promise<void> {
+  return defaultApiClient.logout();
+}
+
+export async function deleteAccount(): Promise<void> {
+  return defaultApiClient.deleteAccount();
+}
+//#endregion
+
+// #region Auth Hooks
+export function useLogin(): UseMutationHookResult<LoginDto, LoginResponseType> {
+  return useMutation((data) => defaultApiClient.login(data));
+}
+
+export function useRegister(): UseMutationHookResult<RegisterDto, void> {
+  return useMutation((data) => defaultApiClient.register(data));
+}
+
+export function useConfirmEmail(): UseMutationHookResult<string, void> {
+  return useMutation((hash) => defaultApiClient.confirmEmail(hash));
+}
+
+export function useForgotPassword(): UseMutationHookResult<string, void> {
+  return useMutation((email) => defaultApiClient.forgotPassword(email));
+}
+
+export function useResetPassword(): UseMutationHookResult<
+  ResetPasswordDto,
+  void
+> {
+  return useMutation((data) => defaultApiClient.resetPassword(data));
+}
+
+export function useResetAuthUserPassword(): UseMutationHookResult<
+  AuthResetPasswordDto,
+  void
+> {
+  return useMutation((data) => defaultApiClient.resetAuthUserPassword(data));
+}
+
+export function useLogout(): UseMutationHookResult<void, void> {
+  return useMutation(() => defaultApiClient.logout());
+}
+
+export function useDeleteAccount(): UseMutationHookResult<void, void> {
+  return useMutation(() => defaultApiClient.deleteAccount());
+}
+//#endregion
+
 export default {
   default: defaultApiClient,
   getPlayerBehaviorDashboard,
-  useGetPlayerBehaviorDashboard
+  useGetPlayerBehaviorDashboard,
+  login,
+  register,
+  confirmEmail,
+  forgotPassword,
+  resetPassword,
+  resetAuthUserPassword,
+  logout,
+  deleteAccount,
+  useLogin,
+  useRegister,
+  useConfirmEmail,
+  useForgotPassword,
+  useResetPassword,
+  useResetAuthUserPassword,
+  useLogout,
+  useDeleteAccount
 };

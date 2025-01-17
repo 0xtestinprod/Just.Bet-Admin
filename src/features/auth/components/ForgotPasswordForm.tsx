@@ -1,31 +1,42 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { authService } from '@/features/auth/services/auth.service';
 import { toast } from 'sonner';
+import { useForgotPassword } from '@/models/auth';
+import { useState } from 'react';
+
+const EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+
+type FormData = {
+  email: string;
+};
 
 export default function ForgotPasswordForm() {
-  const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [forgotPassword, { loading }] = useForgotPassword();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<FormData>({
+    mode: 'onSubmit',
+    defaultValues: {
+      email: ''
+    }
+  });
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setIsLoading(true);
-
+  const onSubmit = async (data: FormData) => {
     try {
-      await authService.forgotPassword(email);
+      await forgotPassword(data.email);
       setIsSubmitted(true);
       toast.success('Password reset instructions have been sent to your email');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Something went wrong');
-    } finally {
-      setIsLoading(false);
     }
-  }
+  };
 
   if (isSubmitted) {
     return (
@@ -39,21 +50,29 @@ export default function ForgotPasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className='space-y-4'>
+    <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
       <div className='space-y-2'>
         <Label htmlFor='email'>Email</Label>
         <Input
           id='email'
           type='email'
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          disabled={isLoading}
+          {...register('email', {
+            required: 'Email is required',
+            pattern: {
+              value: EMAIL_REGEX,
+              message: 'Please enter a valid email address'
+            }
+          })}
+          disabled={loading}
           placeholder='name@example.com'
+          aria-invalid={!!errors.email}
         />
+        {errors.email && (
+          <p className='text-sm text-red-500'>{errors.email.message}</p>
+        )}
       </div>
-      <Button type='submit' className='w-full' disabled={isLoading}>
-        {isLoading ? 'Sending instructions...' : 'Send reset instructions'}
+      <Button type='submit' className='w-full' disabled={loading}>
+        {loading ? 'Sending instructions...' : 'Send reset instructions'}
       </Button>
     </form>
   );
