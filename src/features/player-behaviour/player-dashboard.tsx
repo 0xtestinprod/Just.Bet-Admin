@@ -17,6 +17,15 @@ import {
 import { PlayerCombobox } from './components/player-combox';
 import { DashboardStatisticsResponse } from '@/models/player-behavior';
 import { ApiResponse } from '@/api';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 
 export interface TimeRange {
   label: string;
@@ -63,6 +72,10 @@ export default function PlayerDashboard({
   // Keep track of the last successful data
   const [stableData, setStableData] =
     React.useState<DashboardStatisticsResponse | null>(null);
+
+  const [searchAddress, setSearchAddress] = useState('');
+  const [sortBy, setSortBy] = useState('date');
+  const [sortOrder, setSortOrder] = useState('asc');
 
   useEffect(() => {
     if (initialPlayers && initialPlayers.length > 0) {
@@ -280,91 +293,131 @@ export default function PlayerDashboard({
           </TabsContent>
 
           <TabsContent value='financial' className='space-y-4'>
-            <div className='grid gap-4 md:grid-cols-2'>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Deposits</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='scrollbar-thin max-h-[200px] space-y-2 overflow-y-auto'>
-                    {data?.financial?.deposits?.map(
-                      (
-                        deposit: {
-                          token: string;
-                          amount: number;
-                          amountUsd: number;
-                          timestamp: number;
-                        },
-                        i: number
-                      ) => (
-                        <div
-                          key={i}
-                          className='flex items-center justify-between py-2'
-                        >
-                          <div className='space-y-1'>
-                            <p className='text-sm font-medium leading-none'>
-                              {deposit?.token ?? 'Unknown'}
-                            </p>
-                            <p className='text-sm text-muted-foreground'>
-                              {new Date(
-                                deposit?.timestamp ?? 0
-                              ).toLocaleDateString()}
-                            </p>
+            <div className='flex flex-col gap-4'>
+              <div className='flex flex-wrap gap-4'>
+                <Input
+                  placeholder='Search by address'
+                  value={searchAddress}
+                  onChange={(e) => setSearchAddress(e.target.value)}
+                  className='w-full sm:w-auto'
+                />
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className='w-[180px]'>
+                    <SelectValue placeholder='Sort by' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='date'>Date</SelectItem>
+                    <SelectItem value='value'>Value</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={() =>
+                    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+                  }
+                >
+                  {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                </Button>
+              </div>
+              <div className='grid gap-4 md:grid-cols-2'>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Deposits</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className='scrollbar-thin max-h-[200px] space-y-2 overflow-y-auto'>
+                      {data?.financial?.deposits
+                        ?.filter((deposit) =>
+                          deposit.token
+                            .toLowerCase()
+                            .includes(searchAddress.toLowerCase())
+                        )
+                        ?.sort((a, b) => {
+                          if (sortBy === 'date') {
+                            return sortOrder === 'asc'
+                              ? a.timestamp - b.timestamp
+                              : b.timestamp - a.timestamp;
+                          } else {
+                            return sortOrder === 'asc'
+                              ? a.amountUsd - b.amountUsd
+                              : b.amountUsd - a.amountUsd;
+                          }
+                        })
+                        ?.map((deposit, i) => (
+                          <div
+                            key={i}
+                            className='flex items-center justify-between py-2'
+                          >
+                            <div className='space-y-1'>
+                              <p className='text-sm font-medium leading-none'>
+                                {deposit?.token ?? 'Unknown'}
+                              </p>
+                              <p className='text-sm text-muted-foreground'>
+                                {new Date(
+                                  deposit?.timestamp ?? 0
+                                ).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className='flex items-center gap-2'>
+                              <ArrowUp className='h-4 w-4 text-green-500' />
+                              <span className='font-medium'>
+                                ${deposit?.amountUsd?.toFixed(2) ?? '0.00'}
+                              </span>
+                            </div>
                           </div>
-                          <div className='flex items-center gap-2'>
-                            <ArrowUp className='h-4 w-4 text-green-500' />
-                            <span className='font-medium'>
-                              ${deposit?.amountUsd?.toFixed(2) ?? '0.00'}
-                            </span>
+                        )) ?? []}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Withdrawals</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className='scrollbar-thin max-h-[200px] space-y-2 overflow-y-auto'>
+                      {data?.financial?.withdrawals
+                        ?.filter((withdrawal) =>
+                          withdrawal.token
+                            .toLowerCase()
+                            .includes(searchAddress.toLowerCase())
+                        )
+                        ?.sort((a, b) => {
+                          if (sortBy === 'date') {
+                            return sortOrder === 'asc'
+                              ? a.timestamp - b.timestamp
+                              : b.timestamp - a.timestamp;
+                          } else {
+                            return sortOrder === 'asc'
+                              ? a.amountUsd - b.amountUsd
+                              : b.amountUsd - a.amountUsd;
+                          }
+                        })
+                        ?.map((withdrawal, i) => (
+                          <div
+                            key={i}
+                            className='flex items-center justify-between py-2'
+                          >
+                            <div className='space-y-1'>
+                              <p className='text-sm font-medium leading-none'>
+                                {withdrawal?.token ?? 'Unknown'}
+                              </p>
+                              <p className='text-sm text-muted-foreground'>
+                                {new Date(
+                                  withdrawal?.timestamp ?? 0
+                                ).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className='flex items-center gap-2'>
+                              <ArrowDown className='h-4 w-4 text-red-500' />
+                              <span className='font-medium'>
+                                ${withdrawal?.amountUsd?.toFixed(2) ?? '0.00'}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      )
-                    ) ?? []}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Withdrawals</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='scrollbar-thin max-h-[200px] space-y-2 overflow-y-auto'>
-                    {data?.financial?.withdrawals?.map(
-                      (
-                        withdrawal: {
-                          token: string;
-                          amount: number;
-                          amountUsd: number;
-                          timestamp: number;
-                        },
-                        i: number
-                      ) => (
-                        <div
-                          key={i}
-                          className='flex items-center justify-between py-2'
-                        >
-                          <div className='space-y-1'>
-                            <p className='text-sm font-medium leading-none'>
-                              {withdrawal?.token ?? 'Unknown'}
-                            </p>
-                            <p className='text-sm text-muted-foreground'>
-                              {new Date(
-                                withdrawal?.timestamp ?? 0
-                              ).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div className='flex items-center gap-2'>
-                            <ArrowDown className='h-4 w-4 text-red-500' />
-                            <span className='font-medium'>
-                              ${withdrawal?.amountUsd?.toFixed(2) ?? '0.00'}
-                            </span>
-                          </div>
-                        </div>
-                      )
-                    ) ?? []}
-                  </div>
-                </CardContent>
-              </Card>
+                        )) ?? []}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </TabsContent>
 
