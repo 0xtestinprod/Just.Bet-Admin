@@ -528,9 +528,11 @@ export default function PlayerDashboard({
 
         <Card>
           <CardHeader>
-            <CardTitle className='text-white'>Player Growth</CardTitle>
+            <CardTitle className='text-white'>
+              Player Net Balance Over Time
+            </CardTitle>
             <p className='text-sm text-gray-400'>
-              Net deposits and withdrawals in USD ($)
+              deposits and withdrawals in USD ($)
             </p>
           </CardHeader>
           <CardContent>
