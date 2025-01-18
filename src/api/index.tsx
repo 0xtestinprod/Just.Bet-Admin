@@ -20,27 +20,29 @@ export interface ApiResponse<T> {
 }
 
 export function useQuery<ResultT>(
-  fn: () => Promise<ResultT>
+  fn: () => Promise<ResultT>,
+  dependencies: any[] = []
 ): UseQueryHookResult<ResultT> {
   const [data, setData] = React.useState<ResultT | null>(null);
   const [loading, setLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<Error | null>(null);
 
   const fetchData = React.useCallback(() => {
+    setLoading(true);
     setError(null);
 
     fn()
       .then(setData)
       .catch(setError)
       .finally(() => setLoading(false));
-  }, []);
+  }, dependencies);
 
-  React.useEffect(() => fetchData(), []);
+  React.useEffect(() => fetchData(), [fetchData]);
 
   const refetch = React.useCallback(() => {
     setLoading(true);
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   return { data, loading, error, refetch };
 }
@@ -479,9 +481,13 @@ export async function getPlayerBehaviorDashboard(
 
 // #region Player Behavior Dashboard Hooks
 export function useGetPlayerBehaviorDashboard(
-  input: PlayerBehaviorInput
+  input: PlayerBehaviorInput,
+  dependencies: any[] = []
 ): UseQueryHookResult<DashboardStatisticsResponse> {
-  return useQuery(() => defaultApiClient.getPlayerBehaviorDashboard(input));
+  return useQuery(
+    () => defaultApiClient.getPlayerBehaviorDashboard(input),
+    dependencies
+  );
 }
 //#endregion
 

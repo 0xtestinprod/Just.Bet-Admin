@@ -72,11 +72,14 @@ export default function PlayerDashboard({
     data: dashboardData,
     loading,
     error
-  } = PlayerBehavior.useGetPlayerBehaviorDashboard({
-    address: selectedPlayer,
-    timeFrom,
-    timeTo
-  });
+  } = PlayerBehavior.useGetPlayerBehaviorDashboard(
+    {
+      address: selectedPlayer,
+      timeFrom,
+      timeTo
+    },
+    [selectedPlayer, timeFrom, timeTo]
+  );
 
   console.log(dashboardData);
 
