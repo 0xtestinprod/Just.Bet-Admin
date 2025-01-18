@@ -1,7 +1,7 @@
 'use client';
 
 import * as PlayerBehavior from '@/models/player-behavior';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -60,6 +60,10 @@ export default function PlayerDashboard({
   const [selectedTimeRange, setSelectedTimeRange] =
     useState<TimeRange['value']>('day');
 
+  // Keep track of the last successful data
+  const [stableData, setStableData] =
+    React.useState<DashboardStatisticsResponse | null>(null);
+
   useEffect(() => {
     if (initialPlayers && initialPlayers.length > 0) {
       setSelectedPlayer(initialPlayers[0]);
@@ -68,30 +72,32 @@ export default function PlayerDashboard({
 
   const { timeFrom, timeTo } = getTimeRange(selectedTimeRange);
 
-  const {
-    data: dashboardData,
-    loading,
-    error
-  } = PlayerBehavior.useGetPlayerBehaviorDashboard(
-    {
+  const queryInput = useMemo(
+    () => ({
       address: selectedPlayer,
       timeFrom,
       timeTo
-    },
+    }),
     [selectedPlayer, timeFrom, timeTo]
   );
 
-  console.log(dashboardData);
+  const { data: dashboardData, error } =
+    PlayerBehavior.useGetPlayerBehaviorDashboard(queryInput, [
+      selectedPlayer,
+      timeFrom,
+      timeTo
+    ]);
 
-  const data = (
-    dashboardData as ApiResponse<DashboardStatisticsResponse> | null
-  )?.data;
+  // Update stable data when we get new data
+  React.useEffect(() => {
+    if (dashboardData) {
+      setStableData(dashboardData);
+    }
+  }, [dashboardData]);
 
-  if (loading) {
-    return (
-      <div className='flex items-center justify-center p-8'>Loading...</div>
-    );
-  }
+  // Use stableData instead of dashboardData in your render
+  const data = (stableData as ApiResponse<DashboardStatisticsResponse> | null)
+    ?.data;
 
   if (error) {
     return (
