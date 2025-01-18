@@ -286,7 +286,7 @@ export default function PlayerDashboard({
                   <CardTitle>Deposits</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className='space-y-2'>
+                  <div className='scrollbar-thin max-h-[200px] space-y-2 overflow-y-auto'>
                     {data?.financial?.deposits?.map(
                       (
                         deposit: {
@@ -328,7 +328,7 @@ export default function PlayerDashboard({
                   <CardTitle>Withdrawals</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className='space-y-2'>
+                  <div className='scrollbar-thin max-h-[200px] space-y-2 overflow-y-auto'>
                     {data?.financial?.withdrawals?.map(
                       (
                         withdrawal: {

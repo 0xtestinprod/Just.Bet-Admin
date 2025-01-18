@@ -82,6 +82,33 @@
   body {
     @apply box-border bg-background text-foreground;
   }
+
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  ::-webkit-scrollbar {
+    width: 2px;
+    height: 2px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: #b27aff;
+    width: 2px;
+    border-radius: 2px;
+  }
+
+  ::-webkit-scrollbar-button {
+    display: none;
+  }
 }
 
 /* Refined shadow utilities for better layering */
