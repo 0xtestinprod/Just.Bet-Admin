@@ -294,29 +294,36 @@ export default function PlayerDashboard({
 
           <TabsContent value='financial' className='space-y-4'>
             <div className='flex flex-col gap-4'>
-              <div className='flex flex-wrap gap-4'>
+              <div className='flex flex-wrap justify-between gap-4'>
                 <Input
                   placeholder='Search by address'
                   value={searchAddress}
                   onChange={(e) => setSearchAddress(e.target.value)}
                   className='w-full sm:w-auto'
                 />
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className='w-[180px]'>
-                    <SelectValue placeholder='Sort by' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='date'>Date</SelectItem>
-                    <SelectItem value='value'>Value</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  onClick={() =>
-                    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
-                  }
-                >
-                  {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-                </Button>
+                <div className='flex gap-2'>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className='w-[180px]'>
+                      <SelectValue placeholder='Sort by' />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value='date'>Date</SelectItem>
+                      <SelectItem value='value'>Value</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div
+                    className='flex cursor-pointer items-center justify-center'
+                    onClick={() =>
+                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+                    }
+                  >
+                    {sortOrder === 'asc' ? (
+                      <ArrowUp className='h-4 w-4' />
+                    ) : (
+                      <ArrowDown className='h-4 w-4' />
+                    )}
+                  </div>
+                </div>
               </div>
               <div className='grid gap-4 md:grid-cols-2'>
                 <Card>
