@@ -14,7 +14,7 @@ export default function OverViewLayout({
     <PageContainer>
       <div className='flex flex-1 flex-col space-y-10'>
         {player_behaviour}
-        {player_growth}
+        {/* {player_growth} */}
         {player_stats}
       </div>
     </PageContainer>

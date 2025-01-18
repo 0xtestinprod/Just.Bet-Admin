@@ -18,7 +18,6 @@ import { PlayerCombobox } from './components/player-combox';
 import { DashboardStatisticsResponse } from '@/models/player-behavior';
 import { ApiResponse } from '@/api';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -26,6 +25,14 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer
+} from 'recharts';
 
 export interface TimeRange {
   label: string;
@@ -111,6 +118,47 @@ export default function PlayerDashboard({
   // Use stableData instead of dashboardData in your render
   const data = (stableData as ApiResponse<DashboardStatisticsResponse> | null)
     ?.data;
+
+  const calculatePlayerGrowth = (data: DashboardStatisticsResponse) => {
+    if (!data?.financial) return [];
+
+    const transactions = [
+      ...(data.financial.deposits ?? []),
+      ...(data.financial.withdrawals ?? [])
+    ].sort((a, b) => a.timestamp - b.timestamp);
+
+    // Group transactions based on selected time range
+    const groups = new Map<string, number>();
+    let total = 0;
+
+    transactions.forEach((tx) => {
+      const date = new Date(tx.timestamp * 1000);
+      let key = '';
+
+      switch (selectedTimeRange) {
+        case 'day':
+          // Group by hour for last 24 hours
+          key = date.getHours().toString().padStart(2, '0') + ':00';
+          break;
+        case 'week':
+          // Group by day for last week
+          key = date.toLocaleDateString('en-US', { weekday: 'short' });
+          break;
+        case 'month':
+          // Group by day and month for last month
+          key = `${date.getDate()} ${date.toLocaleDateString('en-US', { month: 'short' })}`;
+          break;
+      }
+
+      total += tx.amountUsd;
+      groups.set(key, total);
+    });
+
+    return Array.from(groups.entries()).map(([label, value]) => ({
+      label,
+      value
+    }));
+  };
 
   if (error) {
     return (
@@ -477,6 +525,64 @@ export default function PlayerDashboard({
             </div>
           </TabsContent>
         </Tabs>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className='text-white'>Player Growth</CardTitle>
+            <p className='text-sm text-gray-400'>
+              Net deposits and withdrawals in USD ($)
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className='h-[300px] w-full'>
+              <ResponsiveContainer width='100%' height='100%'>
+                <LineChart
+                  data={calculatePlayerGrowth(
+                    data as DashboardStatisticsResponse
+                  )}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
+                  <XAxis
+                    dataKey='label'
+                    stroke='#666'
+                    tick={{ fill: '#666' }}
+                    interval={0}
+                    angle={-45}
+                    textAnchor='end'
+                    height={60}
+                  />
+                  <YAxis
+                    stroke='#666'
+                    tick={{ fill: '#666' }}
+                    tickFormatter={(value) => `$${value.toFixed(2)}`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1a1a1a',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: '#fff'
+                    }}
+                    formatter={(value) => [
+                      `$${Number(value).toFixed(2)}`,
+                      'Balance'
+                    ]}
+                    labelFormatter={(label) => label}
+                  />
+                  <Line
+                    type='monotone'
+                    dataKey='value'
+                    stroke='#4ade80'
+                    strokeWidth={2}
+                    dot={{ fill: '#4ade80', r: 4 }}
+                    activeDot={{ r: 6 }}
+                    name='Balance'
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
