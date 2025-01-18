@@ -127,6 +127,12 @@ export interface GameResult {
   hash: string;
 }
 
+export interface Token {
+  address: string;
+  symbol: string;
+  decimals: number;
+}
+
 //#endregion
 
 // #region Input/Output Games
@@ -194,7 +200,7 @@ export interface DashboardStatisticsResponse {
 
 //#endregion
 
-//#region Auth Types
+//#region Auth Input/Output
 export interface LoginDto {
   email: string;
   password: string;
@@ -233,7 +239,7 @@ export interface LoginResponseType {
 
 //#endregion
 
-//#region Game Performance Types
+//#region Game Performance Input/Output
 export interface GamePerformanceResponse {
   winRatio: number;
   frequency: number;
@@ -318,7 +324,6 @@ export class ApiClient {
   async getPlayerBehaviorDashboard(
     input: PlayerBehaviorInput
   ): Promise<DashboardStatisticsResponse> {
-    console.log(input);
     try {
       const response = await this.client.get(
         `games/stats/player/${input.address}`,
@@ -329,7 +334,7 @@ export class ApiClient {
           }
         }
       );
-      console.log(response.data);
+
       return response.data;
     } catch (error: any) {
       console.error('API Error:', {
@@ -343,7 +348,22 @@ export class ApiClient {
   //#endregion
 
   //#region Game Performance endpoints
-  //TODO: endpoints all, performance, performance-by-token
+  async getGamePerformance(): Promise<GamePerformanceResponse[]> {
+    const response = await this.get<GamePerformanceResponse[]>(
+      'games/stats/performance'
+    );
+
+    return response.data;
+  }
+
+  async getGamePerformanceByToken(
+    address: string
+  ): Promise<GamePerformanceResponse[]> {
+    const response = await this.get<GamePerformanceResponse[]>(
+      `games/stats/performance/token/${address}`
+    );
+    return response.data;
+  }
   //#endregion
 
   //#region Auth endpoints
@@ -424,26 +444,25 @@ export class ApiClient {
   }
   //#endregion
 
+  //#region Game endpoints
   async getAllGames(): Promise<string[]> {
     const response = await this.get<string[]>('games/all');
     return response.data;
   }
+  //#endregion
 
-  async getGamePerformance(): Promise<GamePerformanceResponse[]> {
-    const response = await this.get<GamePerformanceResponse[]>(
-      'games/stats/performance'
-    );
+  //#region Token endpoints
+  async getAllTokens(): Promise<Token[]> {
+    const response = await this.get<Token[]>('token/all');
     return response.data;
   }
 
-  async getGamePerformanceByToken(
-    address: string
-  ): Promise<GamePerformanceResponse[]> {
-    const response = await this.get<GamePerformanceResponse[]>(
-      `games/stats/performance/token/${address}`
-    );
+  async getTokenByAddress(address: string): Promise<Token> {
+    const response = await this.get<Token>(`token/${address}`);
+
     return response.data;
   }
+  //#endregion
 }
 
 const defaultApiClient = new ApiClient();
@@ -588,6 +607,28 @@ export function useGetGamePerformanceByToken(
 }
 //#endregion
 
+//#region Token API Functions
+export async function getAllTokens(): Promise<Token[]> {
+  return defaultApiClient.getAllTokens();
+}
+
+export async function getTokenByAddress(address: string): Promise<Token> {
+  return defaultApiClient.getTokenByAddress(address);
+}
+//#endregion
+
+//#region Token Hooks
+export function useGetAllTokens(): UseQueryHookResult<Token[]> {
+  return useQuery(() => defaultApiClient.getAllTokens());
+}
+
+export function useGetTokenByAddress(
+  address: string
+): UseQueryHookResult<Token> {
+  return useQuery(() => defaultApiClient.getTokenByAddress(address));
+}
+//#endregion
+
 export default {
   default: defaultApiClient,
   getPlayerBehaviorDashboard,
@@ -615,5 +656,9 @@ export default {
   getGamePerformanceByToken,
   useGetAllGames,
   useGetGamePerformance,
-  useGetGamePerformanceByToken
+  useGetGamePerformanceByToken,
+  getAllTokens,
+  getTokenByAddress,
+  useGetAllTokens,
+  useGetTokenByAddress
 };

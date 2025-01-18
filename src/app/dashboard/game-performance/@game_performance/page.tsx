@@ -6,11 +6,18 @@ import { useState } from 'react';
 import { TokenPerformance } from 'utils/mockData';
 import GamePerformanceTable from '@/components/ui/game-performance-table';
 import TokenPerformanceTable from '@/components/ui/token-performance-table';
+import { useGetGamePerformance } from '@/models/game-performance';
+import { useGetAllTokens } from '@/models/token';
+
 export default function Page() {
   const [selectedToken, setSelectedToken] = useState<TokenPerformance | null>(
     null
   );
 
+  const { data: gamePerformance } = useGetGamePerformance();
+  const { data: tokens } = useGetAllTokens();
+  console.log('gamePerformance', gamePerformance);
+  console.log('tokens', tokens);
   return (
     <div className='flex flex-col space-y-8'>
       <div className='flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center'>
