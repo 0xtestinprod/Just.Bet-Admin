@@ -464,7 +464,7 @@ export default function PlayerDashboard({
                             <div className='flex items-center gap-2'>
                               <ArrowDown className='h-4 w-4 text-red-500' />
                               <span className='font-medium'>
-                                ${withdrawal?.amountUsd?.toFixed(2) ?? '0.00'}
+                                ${withdrawal?.amount?.toFixed(2) ?? '0.00'}
                               </span>
                             </div>
                           </div>
