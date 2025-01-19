@@ -1,7 +1,7 @@
-import * as api from '@/api';
+import * as API from '@/api';
 
-export type PlayerBehaviorInput = api.PlayerBehaviorInput;
-export type DashboardStatisticsResponse = api.DashboardStatisticsResponse;
+export type PlayerBehaviorInput = API.PlayerBehaviorInput;
+export type DashboardStatisticsResponse = API.DashboardStatisticsResponse;
 
 export {
   getPlayerBehaviorDashboard,

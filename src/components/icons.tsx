@@ -1,6 +1,7 @@
 import { DiscordLogoIcon } from '@radix-ui/react-icons';
 import {
   AlertTriangle,
+  Award,
   ArrowRight,
   Check,
   ChevronLeft,
@@ -37,6 +38,7 @@ import {
 export type Icon = LucideIcon;
 
 export const Icons = {
+  referral: Award,
   dashboard: LayoutDashboardIcon,
   logo: Command,
   login: LogIn,

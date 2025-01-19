@@ -30,6 +30,14 @@ export const navItems: NavItem[] = [
     items: [] // No child items
   },
   {
+    title: 'Referral Program',
+    url: '/dashboard/referral-program',
+    icon: 'referral',
+    shortcut: ['r', 'r'],
+    isActive: false,
+    items: []
+  },
+  {
     title: 'Social Stats',
     url: '/dashboard/social',
     icon: 'social',

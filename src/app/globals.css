@@ -83,6 +83,10 @@
     @apply box-border bg-background text-foreground;
   }
 
+  h1 {
+    @apply text-2xl font-bold tracking-tight;
+  }
+
   .scrollbar-none {
     -ms-overflow-style: none;
     scrollbar-width: none;

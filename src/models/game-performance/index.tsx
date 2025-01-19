@@ -1,29 +1,13 @@
 /* eslint-disable import/no-anonymous-default-export */
 import * as API from '@/api';
-import { GamePerformanceResponse } from '@/api';
 import React from 'react';
 
-export async function getAllGames(): Promise<string[]> {
-  return API.getAllGames();
-}
-
-export async function getGamePerformance(): Promise<GamePerformanceResponse[]> {
-  return API.getGamePerformance();
-}
-
-export async function getGamePerformanceByToken(
-  address: string
-): Promise<GamePerformanceResponse[]> {
-  return API.getGamePerformanceByToken(address);
-}
-
-export function useGetAllGames() {
-  return API.useGetAllGames();
-}
-
-export function useGetGamePerformance() {
-  return API.useGetGamePerformance();
-}
+export type GamePerformanceResponse = API.GamePerformanceResponse;
+export {
+  getGamePerformance,
+  getGamePerformanceByToken,
+  useGetGamePerformance
+} from '@/api';
 
 export function useGetGamePerformanceByToken(
   address: string,
@@ -57,10 +41,5 @@ export function useGetGamePerformanceByToken(
 }
 
 export default {
-  getAllGames,
-  getGamePerformance,
-  getGamePerformanceByToken,
-  useGetAllGames,
-  useGetGamePerformance,
   useGetGamePerformanceByToken
 };
