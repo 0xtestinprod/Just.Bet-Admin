@@ -303,6 +303,54 @@ export interface ReferralStatisticsResponse {
 }
 //#endregion
 
+//#region Rewards Input/Output
+export interface RewardBreakdown {
+  token: string;
+  tokenAmount: number;
+  usdValue: number;
+  count: number;
+  percentage: number;
+}
+
+export interface RewardPercentageStats {
+  averagePercentage: number;
+  minPercentage: number;
+  maxPercentage: number;
+  medianPercentage: number;
+}
+
+export interface OverallRewards {
+  totalAvailable: number;
+  totalClaimed: number;
+  rewardPercentage: number;
+}
+
+export interface RewardsAnalytics {
+  totalPendingRewards: number;
+  rewardBreakdown: RewardBreakdown[];
+  rewardPercentageStats: RewardPercentageStats;
+  overallRewards: OverallRewards;
+}
+
+export interface ClaimOverall {
+  totalClaimPercentage: number;
+  averageClaimSize: number;
+}
+
+export interface ClaimBreakdown {
+  tokenAddress: string;
+  claimCount: number;
+  claimedAmount: number;
+  tokenAverageClaimSize: number;
+  claimPercentage: number;
+}
+
+export interface ClaimAnalytics {
+  overall: ClaimOverall;
+  breakdown: ClaimBreakdown[];
+}
+//#endregion
+
 //#region Api Client
 export class ApiClient {
   private basePath: string;
@@ -312,6 +360,8 @@ export class ApiClient {
   constructor(basePath = '/api') {
     const base_url = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
     this.basePath = `${base_url}${basePath}`;
+
+    console.log(this.basePath);
 
     this.client = axios.create({
       baseURL: this.basePath,
@@ -520,6 +570,20 @@ export class ApiClient {
     return response.data;
   }
   //#endregion
+
+  //#region Rewards Program endpoints
+  async getRewardsAnalytics(): Promise<RewardsAnalytics> {
+    const response = await this.get<RewardsAnalytics>(
+      'referrals/rewards/analytics'
+    );
+    return response.data;
+  }
+
+  async getClaimAnalytics(): Promise<ClaimAnalytics> {
+    const response = await this.get<ClaimAnalytics>('referrals/rewards/claims');
+    return response.data;
+  }
+  //#endregion
 }
 
 const defaultApiClient = new ApiClient();
@@ -702,6 +766,26 @@ export function useGetReferralStatistics(): UseQueryHookResult<ReferralStatistic
 }
 //#endregion
 
+//#region Rewards Program API Functions
+export async function getRewardsAnalytics(): Promise<RewardsAnalytics> {
+  return defaultApiClient.getRewardsAnalytics();
+}
+
+export async function getClaimAnalytics(): Promise<ClaimAnalytics> {
+  return defaultApiClient.getClaimAnalytics();
+}
+//#endregion
+
+//#region Rewards Program Hooks
+export function useGetRewardsAnalytics(): UseQueryHookResult<RewardsAnalytics> {
+  return useQuery(() => defaultApiClient.getRewardsAnalytics());
+}
+
+export function useGetClaimAnalytics(): UseQueryHookResult<ClaimAnalytics> {
+  return useQuery(() => defaultApiClient.getClaimAnalytics());
+}
+//#endregion
+
 export default {
   default: defaultApiClient,
   getPlayerBehaviorDashboard,
@@ -733,5 +817,10 @@ export default {
   getAllTokens,
   getTokenByAddress,
   useGetAllTokens,
-  useGetTokenByAddress
+  useGetTokenByAddress,
+  getReferralStatistics,
+  getRewardsAnalytics,
+  getClaimAnalytics,
+  useGetRewardsAnalytics,
+  useGetClaimAnalytics
 };

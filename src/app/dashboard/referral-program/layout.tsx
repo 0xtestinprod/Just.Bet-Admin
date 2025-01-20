@@ -10,7 +10,7 @@ export default function OverViewLayout({
 }) {
   return (
     <PageContainer>
-      <div className='flex flex-1 flex-col space-y-2'>
+      <div className='flex flex-1 flex-col space-y-4 pb-4'>
         {referral_dashboard}
         {reward_distribution}
       </div>

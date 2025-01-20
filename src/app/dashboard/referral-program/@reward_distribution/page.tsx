@@ -1,5 +1,9 @@
-import ReferralRewardsPieChart from '@/features/rewards-statistics/components/referral-rewards-pie-chart';
+import RewardsStatisticsDashboard from '@/features/rewards-statistics';
 
-export default function ReferralDashboard() {
-  return <ReferralRewardsPieChart />;
+export default function RewardDistribution() {
+  return (
+    <>
+      <RewardsStatisticsDashboard />
+    </>
+  );
 }

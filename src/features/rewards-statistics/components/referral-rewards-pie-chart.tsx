@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -15,97 +16,131 @@ import {
 } from '@/components/ui/chart';
 import { Pie, PieChart, Cell, ResponsiveContainer, Sector } from 'recharts';
 import { DollarSign, Users } from 'lucide-react';
+import type { RewardBreakdown } from '@/models/referral';
+import TokenInfoTable from './token-info-table';
 
-interface RewardBreakdownData {
-  token: string;
-  tokenAmount: number;
-  usdValue: number;
-  count: number;
-  percentage: number;
-}
+// Generate a color palette based on the primary color with different saturations and lightness
+const generateColorPalette = (numColors: number): string[] => {
+  const baseHues = [250, 200, 150, 300, 100]; // Purple-based hues
+  const colors: string[] = [];
 
-interface TokenMetadata {
-  [key: string]: {
-    symbol: string;
-    color: string;
-  };
-}
-
-const TOKEN_METADATA: TokenMetadata = {
-  '0x0381132632E9E27A8f37F1bc56bd5a62d21a382B': {
-    symbol: 'USDT',
-    color: 'hsl(var(--chart-1))'
-  },
-  '0xE60256921AE414D7B35d6e881e47931f45E027cf': {
-    symbol: 'USDC',
-    color: 'hsl(var(--chart-2))'
+  for (let i = 0; i < numColors; i++) {
+    const hue = baseHues[i % baseHues.length];
+    const saturation = 70 + ((i * 5) % 20); // Vary saturation between 70-90
+    const lightness = 45 + ((i * 7) % 25); // Vary lightness between 45-70
+    colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
   }
+
+  return colors;
 };
 
-// Mock data
-const MOCK_DATA: RewardBreakdownData[] = [
-  {
-    token: '0x0381132632E9E27A8f37F1bc56bd5a62d21a382B',
-    tokenAmount: 6679.116195791381,
-    usdValue: 6679.7841074109565,
-    count: 482,
-    percentage: 47.577095061842904
-  },
-  {
-    token: '0xE60256921AE414D7B35d6e881e47931f45E027cf',
-    tokenAmount: 7360.867822758278,
-    usdValue: 7360.131735976002,
-    count: 518,
-    percentage: 52.42290493815709
+// Token metadata cache with dynamic color assignment
+const tokenMetadataCache = new Map<string, { symbol: string; color: string }>();
+
+const getTokenMetadata = (token: string, index: number, colors: string[]) => {
+  if (!tokenMetadataCache.has(token)) {
+    // In a real app, you might want to fetch token metadata from a service
+    tokenMetadataCache.set(token, {
+      symbol: `Token ${index + 1}`, // Fallback symbol
+      color: colors[index % colors.length]
+    });
   }
-];
+  return tokenMetadataCache.get(token)!;
+};
 
-const ReferralRewardsPieChart: React.FC = () => {
+const ReferralRewardsPieChart: React.FC<{
+  data: RewardBreakdown[];
+  totalPendingRewards: number;
+}> = ({ data, totalPendingRewards }) => {
   const [activeIndex, setActiveIndex] = useState<number | undefined>();
-  const data = MOCK_DATA;
 
-  const chartData = data.map((item) => ({
-    name: TOKEN_METADATA[item.token]?.symbol || 'Unknown',
-    value: item.usdValue,
-    percentage: item.percentage,
-    color: TOKEN_METADATA[item.token]?.color || 'hsl(var(--chart-5))',
-    count: item.count,
-    tokenAmount: item.tokenAmount
-  }));
+  // Generate colors based on number of tokens
+  const colors = useMemo(
+    () => generateColorPalette(data.length),
+    [data.length]
+  );
+
+  // Process chart data with dynamic colors
+  const chartData = useMemo(() => {
+    return data.map((item, index) => {
+      const metadata = getTokenMetadata(item.token, index, colors);
+      return {
+        name: metadata.symbol,
+        value: item.usdValue,
+        percentage: item.percentage,
+        color: metadata.color,
+        count: item.count,
+        tokenAmount: item.tokenAmount,
+        tokenAddress: item.token // Keep original address for reference
+      };
+    });
+  }, [data, colors]);
 
   const onPieEnter = (_: any, index: number) => {
     setActiveIndex(index);
   };
 
-  const totalUSDValue = chartData.reduce((sum, item) => sum + item.value, 0);
-  const totalCount = chartData.reduce((sum, item) => sum + item.count, 0);
+  const totalCount = useMemo(
+    () => chartData.reduce((sum, item) => sum + item.count, 0),
+    [chartData]
+  );
 
-  // Ensure we have a valid configuration object
-  const chartConfig = chartData.reduce(
-    (config, item) => {
-      if (item.name && item.color) {
-        config[item.name] = {
-          label: item.name,
-          color: item.color
-        };
-      }
-      return config;
-    },
-    {} as Record<string, { label: string; color: string }>
+  // Generate chart config dynamically
+  const chartConfig = useMemo(
+    () =>
+      chartData.reduce(
+        (config, item) => ({
+          ...config,
+          [item.name]: {
+            label: item.name,
+            color: item.color,
+            tokenAddress: item.tokenAddress // Store address for reference
+          }
+        }),
+        {} as Record<
+          string,
+          { label: string; color: string; tokenAddress: string }
+        >
+      ),
+    [chartData]
   );
 
   return (
     <Card className='w-full max-w-4xl'>
       <CardHeader>
-        <CardTitle className='text-2xl font-bold'>
-          Reward Distribution
-        </CardTitle>
-        <CardDescription>
-          Breakdown of referral rewards by token type
-        </CardDescription>
+        <div className='flex items-center justify-between'>
+          <div>
+            <CardTitle className='text-2xl font-bold'>
+              Reward Distribution ({data.length} Tokens)
+            </CardTitle>
+            <CardDescription>
+              Breakdown of referral rewards by token type
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
+          <div className='flex flex-col justify-center space-y-4'>
+            <div className='rounded-lg bg-secondary p-4'>
+              <div className='flex items-center space-x-2'>
+                <DollarSign className='text-primary' />
+                <span className='text-sm font-medium'>
+                  Total Pending Rewards
+                </span>
+              </div>
+              <p className='text-2xl font-bold'>
+                ${totalPendingRewards.toFixed(2)}
+              </p>
+            </div>
+            <div className='rounded-lg bg-secondary p-4'>
+              <div className='flex items-center space-x-2'>
+                <Users className='text-primary' />
+                <span className='text-sm font-medium'>Total Referrals</span>
+              </div>
+              <p className='text-2xl font-bold'>{totalCount}</p>
+            </div>
+          </div>
           <div className='md:col-span-2'>
             <ChartContainer className='h-[300px]' config={chartConfig}>
               <ResponsiveContainer width='100%' height='100%'>
@@ -130,26 +165,11 @@ const ReferralRewardsPieChart: React.FC = () => {
               </ResponsiveContainer>
             </ChartContainer>
           </div>
-          <div className='flex flex-col justify-center space-y-4'>
-            <div className='rounded-lg bg-secondary p-4'>
-              <div className='flex items-center space-x-2'>
-                <DollarSign className='text-primary' />
-                <span className='text-sm font-medium'>Total USD Value</span>
-              </div>
-              <p className='text-2xl font-bold'>${totalUSDValue.toFixed(2)}</p>
-            </div>
-            <div className='rounded-lg bg-secondary p-4'>
-              <div className='flex items-center space-x-2'>
-                <Users className='text-primary' />
-                <span className='text-sm font-medium'>Total Referrals</span>
-              </div>
-              <p className='text-2xl font-bold'>{totalCount}</p>
-            </div>
-          </div>
         </div>
         <ChartLegend className='mt-8'>
           <ChartLegendContent />
         </ChartLegend>
+        <TokenInfoTable data={chartData} />
       </CardContent>
     </Card>
   );
@@ -185,12 +205,22 @@ const renderActiveShape = (props: any) => {
       <text
         x={cx}
         y={cy}
-        dy={8}
+        dy={-8}
         textAnchor='middle'
         fill={fill}
         className='text-xl font-bold'
       >
         {payload.name}
+      </text>
+      <text
+        x={cx}
+        y={cy}
+        dy={16}
+        textAnchor='middle'
+        fill={fill}
+        className='text-xs'
+      >
+        {payload.tokenAddress.slice(0, 6)}...{payload.tokenAddress.slice(-4)}
       </text>
       <Sector
         cx={cx}
