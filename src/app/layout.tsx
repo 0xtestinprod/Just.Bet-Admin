@@ -3,8 +3,8 @@ import { Toaster } from '@/components/ui/sonner';
 import type { Metadata } from 'next';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { Lato } from 'next/font/google';
-import { Session } from 'next-auth';
 import NextTopLoader from 'nextjs-toploader';
+import { getServerSession } from 'next-auth';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -18,13 +18,13 @@ const lato = Lato({
   display: 'swap'
 });
 
-export default function RootLayout({
-  children,
-  session
+export default async function RootLayout({
+  children
 }: {
   children: React.ReactNode;
-  session: Session | null | undefined;
 }) {
+  const session = await getServerSession();
+
   return (
     <html lang='en' className={`${lato.className}`} suppressHydrationWarning>
       <body className={'overflow-hidden'}>

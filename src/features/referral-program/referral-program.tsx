@@ -5,6 +5,14 @@ import * as Referral from '@/models/referral';
 export default async function ReferralProgramDashboard() {
   const data = await Referral.getReferralStatistics();
 
+  const formatLargeNumber = (num: number) => {
+    if (num >= 1e12) return `${(num / 1e12).toFixed(2)}T`;
+    if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
+    if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
+    if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
+    return num.toFixed(2);
+  };
+
   return (
     <div className='flex w-full flex-col gap-4'>
       <div className='flex flex-col gap-4'>
@@ -20,7 +28,7 @@ export default async function ReferralProgramDashboard() {
             </CardHeader>
             <CardContent>
               <div className='text-2xl font-bold'>
-                {data?.totalRewards.toFixed(2)}
+                ${formatLargeNumber(data?.totalRewards || 0)}
               </div>
             </CardContent>
           </Card>
@@ -33,7 +41,7 @@ export default async function ReferralProgramDashboard() {
             </CardHeader>
             <CardContent>
               <div className='text-2xl font-bold'>
-                ${data?.averageSpend.toFixed(2)}
+                ${formatLargeNumber(data?.averageSpend || 0)}
               </div>
             </CardContent>
           </Card>
@@ -59,7 +67,7 @@ export default async function ReferralProgramDashboard() {
                 <div>
                   <div className='text-xs text-muted-foreground'>Volume</div>
                   <div className='text-lg font-bold'>
-                    ${data?.topReferrer?.volume.toFixed(2)}
+                    ${formatLargeNumber(data?.topReferrer?.volume || 0)}
                   </div>
                 </div>
               </div>

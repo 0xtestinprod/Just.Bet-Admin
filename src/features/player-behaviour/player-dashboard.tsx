@@ -107,7 +107,7 @@ export default function PlayerDashboard({
       timeFrom,
       timeTo
     ]);
-
+  console.log(dashboardData);
   // Update stable data when we get new data
   React.useEffect(() => {
     if (dashboardData) {

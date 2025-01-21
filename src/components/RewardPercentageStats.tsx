@@ -46,7 +46,7 @@ export default function RewardPercentageStats() {
               angleAxisId={0}
               tick={false}
             />
-            <RadialBar minAngle={15} background clockWise dataKey='value' />
+            <RadialBar background dataKey='value' />
             <Legend
               iconSize={10}
               layout='vertical'

@@ -3,7 +3,7 @@ import React from 'react';
 
 export default function OverViewLayout({
   player_behaviour,
-  player_growth,
+
   player_stats
 }: {
   player_behaviour: React.ReactNode;
@@ -14,8 +14,8 @@ export default function OverViewLayout({
     <PageContainer>
       <div className='flex flex-1 flex-col space-y-10'>
         {player_behaviour}
-        {/* {player_growth} */}
-        {player_stats}
+
+        {/* {player_stats} */}
       </div>
     </PageContainer>
   );
