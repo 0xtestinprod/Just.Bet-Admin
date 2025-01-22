@@ -24,7 +24,7 @@ export const navItems: NavItem[] = [
   {
     title: 'Game Performance',
     url: '/dashboard/game-performance',
-    icon: 'performance',
+    icon: 'product',
     shortcut: ['p', 'p'],
     isActive: false,
     items: [] // No child items
@@ -42,14 +42,6 @@ export const navItems: NavItem[] = [
     url: '/dashboard/social',
     icon: 'social',
     shortcut: ['s', 's'],
-    isActive: false,
-    items: []
-  },
-  {
-    title: 'Player Segmentation',
-    url: '/dashboard/player-segmentation',
-    icon: 'product',
-    shortcut: ['ps', 'ps'],
     isActive: false,
     items: []
   }
