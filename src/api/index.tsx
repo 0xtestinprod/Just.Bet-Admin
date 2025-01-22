@@ -351,6 +351,25 @@ export interface ClaimAnalytics {
 }
 //#endregion
 
+//#region Player Segmentation Input/Output
+export interface PlayerSegmentsInput {
+  timeFrom: number;
+  timeTo: number;
+  highRollerMinPercentile: number;
+  lowRollerMaxPercentile: number;
+}
+
+export interface PlayerSegmentOutput {
+  player: string;
+  segment: PlayerSegmentType;
+  avgWager: number;
+  totalWagered: number;
+  gameCount: number;
+}
+
+export type PlayerSegmentType = 'High Roller' | 'Mid Roller' | 'Low Roller';
+//#endregion
+
 //#region Api Client
 export class ApiClient {
   private basePath: string;
@@ -358,10 +377,8 @@ export class ApiClient {
   private client: AxiosInstance;
 
   constructor(basePath = '/api') {
-    const base_url = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+    const base_url = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
     this.basePath = `${base_url}${basePath}`;
-
-    console.log(this.basePath);
 
     this.client = axios.create({
       baseURL: this.basePath,
@@ -584,6 +601,22 @@ export class ApiClient {
     return response.data;
   }
   //#endregion
+
+  //#region Player Segmentation endpoints
+  async getPlayerSegments(
+    params: PlayerSegmentsInput
+  ): Promise<PlayerSegmentOutput[]> {
+    console.log(params, 'params');
+    const response = await this.get<PlayerSegmentOutput[]>(
+      'player-segmentation/segments',
+      params
+    );
+
+    console.log(response.data, 'response');
+
+    return response.data;
+  }
+  //#endregion
 }
 
 const defaultApiClient = new ApiClient();
@@ -786,6 +819,27 @@ export function useGetClaimAnalytics(): UseQueryHookResult<ClaimAnalytics> {
 }
 //#endregion
 
+//#region Player Segmentation API Functions
+export async function getPlayerSegments(
+  params: PlayerSegmentsInput
+): Promise<PlayerSegmentOutput[]> {
+  return defaultApiClient.getPlayerSegments(params);
+}
+//#endregion
+
+//#region Player Segmentation Hooks
+export const useGetPlayerSegments = (
+  params: PlayerSegmentsInput,
+  dependencies: any[] = []
+): UseQueryHookResult<PlayerSegmentOutput[]> => {
+  return useQuery(
+    () => defaultApiClient.getPlayerSegments(params),
+    dependencies
+  );
+};
+
+//#endregion
+
 export default {
   default: defaultApiClient,
   getPlayerBehaviorDashboard,
@@ -822,5 +876,7 @@ export default {
   getRewardsAnalytics,
   getClaimAnalytics,
   useGetRewardsAnalytics,
-  useGetClaimAnalytics
+  useGetClaimAnalytics,
+  getPlayerSegments,
+  useGetPlayerSegments
 };
