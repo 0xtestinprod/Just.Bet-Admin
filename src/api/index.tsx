@@ -377,7 +377,7 @@ export class ApiClient {
   private client: AxiosInstance;
 
   constructor(basePath = '/api') {
-    const base_url = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+    const base_url = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
     this.basePath = `${base_url}${basePath}`;
 
     this.client = axios.create({
@@ -606,10 +606,14 @@ export class ApiClient {
   async getPlayerSegments(
     params: PlayerSegmentsInput
   ): Promise<PlayerSegmentOutput[]> {
+    console.log(params, 'params');
     const response = await this.get<PlayerSegmentOutput[]>(
       'player-segmentation/segments',
       params
     );
+
+    console.log(response.data, 'response');
+
     return response.data;
   }
   //#endregion
@@ -824,11 +828,16 @@ export async function getPlayerSegments(
 //#endregion
 
 //#region Player Segmentation Hooks
-export function useGetPlayerSegments(
-  params: PlayerSegmentsInput
-): UseQueryHookResult<PlayerSegmentOutput[]> {
-  return useQuery(() => defaultApiClient.getPlayerSegments(params));
-}
+export const useGetPlayerSegments = (
+  params: PlayerSegmentsInput,
+  dependencies: any[] = []
+): UseQueryHookResult<PlayerSegmentOutput[]> => {
+  return useQuery(
+    () => defaultApiClient.getPlayerSegments(params),
+    dependencies
+  );
+};
+
 //#endregion
 
 export default {
