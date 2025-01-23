@@ -52,6 +52,14 @@ export const navItems: NavItem[] = [
     shortcut: ['ps', 'ps'],
     isActive: false,
     items: []
+  },
+  {
+    title: 'Volume',
+    url: '/dashboard/volume',
+    icon: 'volume',
+    shortcut: ['v', 'v'],
+    isActive: false,
+    items: []
   }
   // {
   //   title: 'Account',
