@@ -370,6 +370,27 @@ export interface PlayerSegmentOutput {
 export type PlayerSegmentType = 'High Roller' | 'Mid Roller' | 'Low Roller';
 //#endregion
 
+//#region Volume Input/Output
+
+export interface GameVolumeStats {
+  game: string;
+  volume: number;
+  transactionCount: number;
+  averageBetSize: number;
+}
+
+export interface VolumeStatsResponse {
+  totalVolume: number;
+  volumeByGame: GameVolumeStats[];
+}
+
+export interface HourlyVolumeDistribution {
+  hour: number;
+  volume: number;
+  transactionCount: number;
+}
+//#endregion
+
 //#region Api Client
 export class ApiClient {
   private basePath: string;
@@ -606,14 +627,38 @@ export class ApiClient {
   async getPlayerSegments(
     params: PlayerSegmentsInput
   ): Promise<PlayerSegmentOutput[]> {
-    console.log(params, 'params');
     const response = await this.get<PlayerSegmentOutput[]>(
       'player-segmentation/segments',
       params
     );
 
-    console.log(response.data, 'response');
+    return response.data;
+  }
+  //#endregion
 
+  //#region Volume endpoints
+  async getVolumeStats(
+    timeFrom?: number,
+    timeTo?: number
+  ): Promise<VolumeStatsResponse> {
+    const response = await this.get<VolumeStatsResponse>('volume-stats', {
+      timeFrom,
+      timeTo
+    });
+    return response.data;
+  }
+
+  async getHourlyVolumeDistribution(
+    timeFrom?: number,
+    timeTo?: number
+  ): Promise<HourlyVolumeDistribution[]> {
+    const response = await this.get<HourlyVolumeDistribution[]>(
+      'volume-stats/hourly-distribution',
+      {
+        timeFrom,
+        timeTo
+      }
+    );
     return response.data;
   }
   //#endregion
@@ -840,6 +885,40 @@ export const useGetPlayerSegments = (
 
 //#endregion
 
+//#region Volume API Functions
+export async function getVolumeStats(
+  timeFrom?: number,
+  timeTo?: number
+): Promise<VolumeStatsResponse> {
+  return defaultApiClient.getVolumeStats(timeFrom, timeTo);
+}
+
+export async function getHourlyVolumeDistribution(
+  timeFrom?: number,
+  timeTo?: number
+): Promise<HourlyVolumeDistribution[]> {
+  return defaultApiClient.getHourlyVolumeDistribution(timeFrom, timeTo);
+}
+//#endregion
+
+//#region Volume Hooks
+export function useGetVolumeStats(
+  timeFrom?: number,
+  timeTo?: number
+): UseQueryHookResult<VolumeStatsResponse> {
+  return useQuery(() => defaultApiClient.getVolumeStats(timeFrom, timeTo));
+}
+
+export function useGetHourlyVolumeDistribution(
+  timeFrom?: number,
+  timeTo?: number
+): UseQueryHookResult<HourlyVolumeDistribution[]> {
+  return useQuery(() =>
+    defaultApiClient.getHourlyVolumeDistribution(timeFrom, timeTo)
+  );
+}
+//#endregion
+
 export default {
   default: defaultApiClient,
   getPlayerBehaviorDashboard,
@@ -878,5 +957,9 @@ export default {
   useGetRewardsAnalytics,
   useGetClaimAnalytics,
   getPlayerSegments,
-  useGetPlayerSegments
+  useGetPlayerSegments,
+  getVolumeStats,
+  getHourlyVolumeDistribution,
+  useGetVolumeStats,
+  useGetHourlyVolumeDistribution
 };
