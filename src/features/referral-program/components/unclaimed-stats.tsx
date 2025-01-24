@@ -1,0 +1,321 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import { Pie } from 'react-chartjs-2';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { ArrowUpDown, Search } from 'lucide-react';
+
+// Register ChartJS components
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+// Chart options
+const options = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'right' as const
+    },
+    title: {
+      display: true,
+      text: 'Distribution by Token'
+    }
+  }
+};
+
+interface TokenData {
+  token: string;
+  amount: number;
+  amountUsd: number;
+  count: number;
+}
+
+interface UnclaimedData {
+  totalUnclaimed: number;
+  unclaimedByToken: TokenData[];
+}
+
+// Mock data based on the API response
+const mockData: UnclaimedData = {
+  totalUnclaimed: 3566536.74200033,
+  unclaimedByToken: [
+    {
+      token: '0x29ccdf5dcd1fc2bc227bfae8c5d3ce3f1b93dcaa',
+      amount: 31.717642,
+      amountUsd: 47126.70683644,
+      count: 1
+    },
+    {
+      token: '0x3d7437f64cfaff7d0abc9fcf4df12ad9efaeabae',
+      amount: 375.28078800000003,
+      amountUsd: 743465.01629892,
+      count: 1
+    },
+    {
+      token: '0x2ecfbf5bbc5bf47c4de4af1415b7d9d9a4cbda51',
+      amount: 179.85156199999997,
+      amountUsd: 345622.5452110199,
+      count: 1
+    }
+    // ... more token data
+  ]
+};
+
+// Helper function to abbreviate token addresses
+function abbreviateAddress(address: string): string {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+// Generate random colors for the chart
+function generateColors(count: number) {
+  const colors = [];
+  for (let i = 0; i < count; i++) {
+    colors.push(`hsl(${(i * 360) / count}, 40%, 50%)`);
+  }
+  return colors;
+}
+
+export function UnclaimedStats() {
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof TokenData;
+    direction: 'asc' | 'desc';
+  }>({ key: 'amountUsd', direction: 'desc' });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+
+  // Filter and sort data based on search query and current configuration
+  const filteredAndSortedData = useMemo(() => {
+    return [...mockData.unclaimedByToken]
+      .filter((item) =>
+        item.token.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .sort((a, b) => {
+        if (sortConfig.direction === 'asc') {
+          return a[sortConfig.key] > b[sortConfig.key] ? 1 : -1;
+        }
+        return a[sortConfig.key] < b[sortConfig.key] ? 1 : -1;
+      });
+  }, [searchQuery, sortConfig]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredAndSortedData.length / pageSize);
+  const paginatedData = filteredAndSortedData.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  // Prepare data for the pie chart
+  const chartData = {
+    labels: filteredAndSortedData.map((item) => abbreviateAddress(item.token)),
+    datasets: [
+      {
+        data: filteredAndSortedData.map((item) => item.amountUsd),
+        backgroundColor: generateColors(filteredAndSortedData.length)
+      }
+    ]
+  };
+
+  const requestSort = (key: keyof TokenData) => {
+    setSortConfig((current) => ({
+      key,
+      direction:
+        current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  return (
+    <div className='space-y-8'>
+      {/* Total Unclaimed Card */}
+      <Card className='bg-primary/5'>
+        <CardHeader>
+          <CardTitle>Total Unclaimed Referrals</CardTitle>
+          <CardDescription>Total value across all tokens</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className='text-4xl font-bold text-primary'>
+            $
+            {mockData.totalUnclaimed.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Distribution Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Token Distribution</CardTitle>
+          <CardDescription>
+            Distribution of unclaimed referrals by token
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className='h-[400px]'>
+            <Pie options={options} data={chartData} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Detailed Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Detailed Token Breakdown</CardTitle>
+          <CardDescription>
+            Comprehensive view of unclaimed referrals by token
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className='flex items-center gap-4 py-4'>
+            <div className='relative flex-1'>
+              <Search className='absolute left-2 top-2.5 h-4 w-4 text-muted-foreground' />
+              <Input
+                placeholder='Search by token address...'
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1); // Reset to first page on search
+                }}
+                className='pl-8'
+              />
+            </div>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
+                setCurrentPage(1); // Reset to first page when changing page size
+              }}
+            >
+              <SelectTrigger className='w-[180px]'>
+                <SelectValue placeholder='Select page size' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='5'>5 per page</SelectItem>
+                <SelectItem value='10'>10 per page</SelectItem>
+                <SelectItem value='20'>20 per page</SelectItem>
+                <SelectItem value='50'>50 per page</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Token Address</TableHead>
+                <TableHead>
+                  <Button variant='ghost' onClick={() => requestSort('amount')}>
+                    Amount
+                    <ArrowUpDown className='ml-2 h-4 w-4' />
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant='ghost'
+                    onClick={() => requestSort('amountUsd')}
+                  >
+                    Amount (USD)
+                    <ArrowUpDown className='ml-2 h-4 w-4' />
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button variant='ghost' onClick={() => requestSort('count')}>
+                    Count
+                    <ArrowUpDown className='ml-2 h-4 w-4' />
+                  </Button>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedData.map((item) => (
+                <TableRow key={item.token}>
+                  <TableCell className='font-mono'>
+                    {abbreviateAddress(item.token)}
+                  </TableCell>
+                  <TableCell>
+                    {item.amount.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 6
+                    })}
+                  </TableCell>
+                  <TableCell>
+                    $
+                    {item.amountUsd.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}
+                  </TableCell>
+                  <TableCell>{item.count}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          <div className='flex items-center justify-between space-x-2 py-4'>
+            <div className='text-sm text-muted-foreground'>
+              Showing {(currentPage - 1) * pageSize + 1} to{' '}
+              {Math.min(currentPage * pageSize, filteredAndSortedData.length)}{' '}
+              of {filteredAndSortedData.length} entries
+            </div>
+            <div className='flex space-x-2'>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? 'default' : 'outline'}
+                    size='sm'
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </Button>
+                )
+              )}
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                }
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
