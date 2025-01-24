@@ -2,61 +2,35 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
 import { formatCurrency } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { HourlyVolumeChart } from './components/hourly-volume-chart';
 import { GameStatsTable } from './components/game-stats-table';
 import { GameVolumeChart } from './components/game-volume-chart';
-
-// Mock data
-const mockData = {
-  totalVolume: 47077319982,
-  volumeByGame: [
-    {
-      game: '1',
-      volume: 12988843135,
-      transactionCount: 15,
-      averageBetSize: 865922875.6666666
-    },
-    {
-      game: '2',
-      volume: 12910250172,
-      transactionCount: 15,
-      averageBetSize: 860683344.8
-    },
-    {
-      game: '3',
-      volume: 10373526481,
-      transactionCount: 15,
-      averageBetSize: 691568432.0666667
-    },
-    {
-      game: '4',
-      volume: 10804700194,
-      transactionCount: 15,
-      averageBetSize: 720313346.2666667
-    }
-  ]
-};
-
-// Mock hourly data
-const mockHourlyData = Array.from({ length: 24 }, (_, i) => ({
-  hour: i,
-  volume: Math.floor(Math.random() * 1000000000),
-  transactionCount: Math.floor(Math.random() * 1000)
-}));
+import * as Volume from '@/models/volume';
 
 export default function VolumeStatsDashboard() {
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: new Date(2023, 0, 20),
-    to: new Date(2023, 0, 25)
-  });
+  const [date, setDate] = useState<DateRange | undefined>();
+
+  const timeFrom = date?.from
+    ? Math.floor(date.from.getTime() / 1000)
+    : undefined;
+  const timeTo = date?.to ? Math.floor(date.to.getTime() / 1000) : undefined;
+
+  const { data: volumeStats, loading: volumeLoading } =
+    Volume.useGetVolumeStats(timeFrom, timeTo);
+
+  const { data: hourlyData, loading: hourlyLoading } =
+    Volume.useGetHourlyVolumeDistribution(timeFrom, timeTo);
+
+  if (volumeLoading || hourlyLoading) {
+    return null;
+  }
 
   return (
     <div className='container mx-auto py-10'>
-      {/* <div className='mb-8 flex items-center justify-between'>
+      <div className='mb-8 flex items-center justify-between'>
         <h1 className='text-4xl font-bold'>Volume Dashboard</h1>
         <DatePickerWithRange date={date} setDate={setDate} />
       </div>
@@ -68,7 +42,7 @@ export default function VolumeStatsDashboard() {
           </CardHeader>
           <CardContent>
             <p className='text-4xl font-bold'>
-              {formatCurrency(mockData.totalVolume)}
+              {formatCurrency(volumeStats?.totalVolume ?? 0)}
             </p>
           </CardContent>
         </Card>
@@ -80,7 +54,7 @@ export default function VolumeStatsDashboard() {
             <CardTitle>Volume by Game</CardTitle>
           </CardHeader>
           <CardContent>
-            <GameVolumeChart data={mockData.volumeByGame} />
+            <GameVolumeChart data={volumeStats?.volumeByGame ?? []} />
           </CardContent>
         </Card>
         <Card>
@@ -88,7 +62,7 @@ export default function VolumeStatsDashboard() {
             <CardTitle>Hourly Volume Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <HourlyVolumeChart data={mockHourlyData} />
+            <HourlyVolumeChart data={hourlyData ?? []} />
           </CardContent>
         </Card>
       </div>
@@ -98,9 +72,9 @@ export default function VolumeStatsDashboard() {
           <CardTitle>Game Statistics</CardTitle>
         </CardHeader>
         <CardContent>
-          <GameStatsTable data={mockData.volumeByGame} />
+          <GameStatsTable data={volumeStats?.volumeByGame ?? []} />
         </CardContent>
-      </Card> */}
+      </Card>
     </div>
   );
 }

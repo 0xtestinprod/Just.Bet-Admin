@@ -641,10 +641,12 @@ export class ApiClient {
     timeFrom?: number,
     timeTo?: number
   ): Promise<VolumeStatsResponse> {
+    console.log(timeFrom, timeTo);
     const response = await this.get<VolumeStatsResponse>('volume-stats', {
       timeFrom,
       timeTo
     });
+    console.log(response.data);
     return response.data;
   }
 
