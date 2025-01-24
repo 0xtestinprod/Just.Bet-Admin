@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Pie } from 'react-chartjs-2';
+import * as Referral from '@/models/referral';
 import {
   Card,
   CardContent,
@@ -54,37 +55,6 @@ interface TokenData {
   count: number;
 }
 
-interface UnclaimedData {
-  totalUnclaimed: number;
-  unclaimedByToken: TokenData[];
-}
-
-// Mock data based on the API response
-const mockData: UnclaimedData = {
-  totalUnclaimed: 3566536.74200033,
-  unclaimedByToken: [
-    {
-      token: '0x29ccdf5dcd1fc2bc227bfae8c5d3ce3f1b93dcaa',
-      amount: 31.717642,
-      amountUsd: 47126.70683644,
-      count: 1
-    },
-    {
-      token: '0x3d7437f64cfaff7d0abc9fcf4df12ad9efaeabae',
-      amount: 375.28078800000003,
-      amountUsd: 743465.01629892,
-      count: 1
-    },
-    {
-      token: '0x2ecfbf5bbc5bf47c4de4af1415b7d9d9a4cbda51',
-      amount: 179.85156199999997,
-      amountUsd: 345622.5452110199,
-      count: 1
-    }
-    // ... more token data
-  ]
-};
-
 // Helper function to abbreviate token addresses
 function abbreviateAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -108,9 +78,18 @@ export function UnclaimedStats() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
+  // Fetch unclaimed referrals data using the API hook
+  const {
+    data: unclaimedData,
+    error,
+    loading
+  } = Referral.useGetUnclaimedReferrals();
+
   // Filter and sort data based on search query and current configuration
   const filteredAndSortedData = useMemo(() => {
-    return [...mockData.unclaimedByToken]
+    if (!unclaimedData?.unclaimedByToken) return [];
+
+    return [...unclaimedData.unclaimedByToken]
       .filter((item) =>
         item.token.toLowerCase().includes(searchQuery.toLowerCase())
       )
@@ -120,7 +99,7 @@ export function UnclaimedStats() {
         }
         return a[sortConfig.key] < b[sortConfig.key] ? 1 : -1;
       });
-  }, [searchQuery, sortConfig]);
+  }, [unclaimedData?.unclaimedByToken, searchQuery, sortConfig]);
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredAndSortedData.length / pageSize);
@@ -131,10 +110,12 @@ export function UnclaimedStats() {
 
   // Prepare data for the pie chart
   const chartData = {
-    labels: filteredAndSortedData.map((item) => abbreviateAddress(item.token)),
+    labels: filteredAndSortedData
+      .map((item) => abbreviateAddress(item.token))
+      .slice(0, 10),
     datasets: [
       {
-        data: filteredAndSortedData.map((item) => item.amountUsd),
+        data: filteredAndSortedData.map((item) => item.amountUsd).slice(0, 10),
         backgroundColor: generateColors(filteredAndSortedData.length)
       }
     ]
@@ -148,6 +129,10 @@ export function UnclaimedStats() {
     }));
   };
 
+  if (error || loading) {
+    return null;
+  }
+
   return (
     <div className='space-y-8'>
       {/* Total Unclaimed Card */}
@@ -159,10 +144,10 @@ export function UnclaimedStats() {
         <CardContent>
           <div className='text-4xl font-bold text-primary'>
             $
-            {mockData.totalUnclaimed.toLocaleString(undefined, {
+            {unclaimedData?.totalUnclaimed.toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2
-            })}
+            }) ?? '0.00'}
           </div>
         </CardContent>
       </Card>
@@ -253,9 +238,7 @@ export function UnclaimedStats() {
             <TableBody>
               {paginatedData.map((item) => (
                 <TableRow key={item.token}>
-                  <TableCell className='font-mono'>
-                    {abbreviateAddress(item.token)}
-                  </TableCell>
+                  <TableCell className='font-mono'>{item.token}</TableCell>
                   <TableCell>
                     {item.amount.toLocaleString(undefined, {
                       minimumFractionDigits: 2,

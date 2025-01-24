@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
+import * as Revenue from '@/models/revenue';
 import {
   Card,
   CardContent,
@@ -67,32 +68,6 @@ interface GameData {
   revenue: number;
 }
 
-interface RevenueData {
-  feeRevenue: number;
-  lossRevenue: number;
-  totalRevenue: number;
-  byGame: GameData[];
-}
-
-// Mock data based on the API response
-const mockData: RevenueData = {
-  feeRevenue: 3248.73,
-  lossRevenue: 19857250754,
-  totalRevenue: 19857254002.73,
-  byGame: [
-    { game: 'Game 1', revenue: 7586438078.04 },
-    { game: 'Game 2', revenue: 9530234898.12 },
-    { game: 'Game 3', revenue: 2187355494.57 },
-    { game: 'Game 4', revenue: 553225532 },
-    { game: 'Game 5', revenue: 1234567890 },
-    { game: 'Game 6', revenue: 987654321 },
-    { game: 'Game 7', revenue: 456789012 },
-    { game: 'Game 8', revenue: 345678901 },
-    { game: 'Game 9', revenue: 234567890 },
-    { game: 'Game 10', revenue: 123456789 }
-  ]
-};
-
 export function RevenueStats() {
   const [sortConfig, setSortConfig] = useState<{
     key: keyof GameData;
@@ -102,9 +77,14 @@ export function RevenueStats() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
+  // Fetch revenue data using the API hook
+  const { data: revenueData, error, loading } = Revenue.useGetDegenRevenue();
+
   // Filter and sort data based on search query and current configuration
   const filteredAndSortedData = useMemo(() => {
-    return [...mockData.byGame]
+    if (!revenueData?.byGame) return [];
+
+    return [...revenueData.byGame]
       .filter((item) =>
         item.game.toLowerCase().includes(searchQuery.toLowerCase())
       )
@@ -114,7 +94,7 @@ export function RevenueStats() {
         }
         return a[sortConfig.key] < b[sortConfig.key] ? 1 : -1;
       });
-  }, [searchQuery, sortConfig]);
+  }, [revenueData?.byGame, searchQuery, sortConfig]);
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredAndSortedData.length / pageSize);
@@ -143,6 +123,10 @@ export function RevenueStats() {
     }));
   };
 
+  if (error || loading) {
+    return null;
+  }
+
   return (
     <div className='space-y-8'>
       {/* Revenue Overview Cards */}
@@ -154,7 +138,7 @@ export function RevenueStats() {
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              ${mockData.totalRevenue.toLocaleString()}
+              ${revenueData?.totalRevenue.toLocaleString() ?? '0'}
             </div>
           </CardContent>
         </Card>
@@ -165,7 +149,7 @@ export function RevenueStats() {
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              ${mockData.feeRevenue.toLocaleString()}
+              ${revenueData?.feeRevenue.toLocaleString() ?? '0'}
             </div>
           </CardContent>
         </Card>
@@ -176,7 +160,7 @@ export function RevenueStats() {
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              ${mockData.lossRevenue.toLocaleString()}
+              ${revenueData?.lossRevenue.toLocaleString() ?? '0'}
             </div>
           </CardContent>
         </Card>
@@ -261,7 +245,11 @@ export function RevenueStats() {
                   <TableCell className='font-medium'>{item.game}</TableCell>
                   <TableCell>${item.revenue.toLocaleString()}</TableCell>
                   <TableCell>
-                    {((item.revenue / mockData.totalRevenue) * 100).toFixed(2)}%
+                    {(
+                      (item.revenue / (revenueData?.totalRevenue ?? 0)) *
+                      100
+                    ).toFixed(2)}
+                    %
                   </TableCell>
                 </TableRow>
               ))}

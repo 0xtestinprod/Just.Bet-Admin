@@ -39,7 +39,7 @@ export function ClaimSizeChart({
   const pieChartData = Object.values(claimSizeCategories);
 
   return (
-    <Card className='flex h-[400px] flex-col'>
+    <Card className='flex flex-col'>
       <CardHeader>
         <CardTitle>Claim Size Distribution</CardTitle>
       </CardHeader>
