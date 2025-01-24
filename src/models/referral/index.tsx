@@ -15,7 +15,11 @@ export type ClaimAnalytics = API.ClaimAnalytics;
 export type ClaimOverall = API.ClaimOverall;
 export type ClaimBreakdown = API.ClaimBreakdown;
 
+// Unclaimed Referrals Types
+export type UnclaimedReferralResponse = API.UnclaimedReferralResponse;
+
 // Export API functions and hooks
 export { getReferralStatistics, useGetReferralStatistics } from '@/api';
 export { getRewardsAnalytics, useGetRewardsAnalytics } from '@/api';
 export { getClaimAnalytics, useGetClaimAnalytics } from '@/api';
+export { getUnclaimedReferrals, useGetUnclaimedReferrals } from '@/api';

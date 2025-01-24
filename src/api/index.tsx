@@ -166,15 +166,13 @@ export interface RewardReferral {
   tokenAddress: string;
   uniqueId: string;
 }
-//#endregion
 
-// #region Input/Output Games
-
+//TODO: Add Input/Output for unclaimed stats for referral program
 //#endregion
 
 // #region Input/Output Player-Behavior Dashboard Types
 
-// Token Transaction
+//Token Transaction
 interface TokenTransaction {
   token: string;
   amount: number;
@@ -388,6 +386,28 @@ export interface HourlyVolumeDistribution {
   hour: number;
   volume: number;
   transactionCount: number;
+}
+//#endregion
+
+//#region degen-revenue Input/Output
+export interface DegenRevenueResponse {
+  feeRevenue: number;
+  lossRevenue: number;
+  totalRevenue: number;
+  byGame?: {
+    game: string;
+    revenue: number;
+  }[];
+}
+
+export interface UnclaimedReferralResponse {
+  totalUnclaimed: number;
+  unclaimedByToken: {
+    token: string;
+    amount: number;
+    amountUsd: number;
+    count: number;
+  }[];
 }
 //#endregion
 
@@ -621,6 +641,13 @@ export class ApiClient {
     const response = await this.get<ClaimAnalytics>('referrals/rewards/claims');
     return response.data;
   }
+
+  async getUnclaimedReferrals(): Promise<UnclaimedReferralResponse> {
+    const response = await this.get<UnclaimedReferralResponse>(
+      'additional-stats/unclaimed-referrals'
+    );
+    return response.data;
+  }
   //#endregion
 
   //#region Player Segmentation endpoints
@@ -641,12 +668,10 @@ export class ApiClient {
     timeFrom?: number,
     timeTo?: number
   ): Promise<VolumeStatsResponse> {
-    console.log(timeFrom, timeTo);
     const response = await this.get<VolumeStatsResponse>('volume-stats', {
       timeFrom,
       timeTo
     });
-    console.log(response.data);
     return response.data;
   }
 
@@ -656,6 +681,22 @@ export class ApiClient {
   ): Promise<HourlyVolumeDistribution[]> {
     const response = await this.get<HourlyVolumeDistribution[]>(
       'volume-stats/hourly-distribution',
+      {
+        timeFrom,
+        timeTo
+      }
+    );
+    return response.data;
+  }
+  //#endregion
+
+  //#region degen-revenue endpoints
+  async getDegenRevenue(
+    timeFrom?: number,
+    timeTo?: number
+  ): Promise<DegenRevenueResponse> {
+    const response = await this.get<DegenRevenueResponse>(
+      'additional-stats/degen-revenue',
       {
         timeFrom,
         timeTo
@@ -838,11 +879,17 @@ export function useGetTokenByAddress(
 export async function getReferralStatistics(): Promise<ReferralStatisticsResponse> {
   return defaultApiClient.getReferralStatistics();
 }
+
+//TODO: Add unclaimed stats for referral program api functions
 //#endregion
 
 //#region Referral Program Hooks
 export function useGetReferralStatistics(): UseQueryHookResult<ReferralStatisticsResponse> {
   return useQuery(() => defaultApiClient.getReferralStatistics());
+}
+
+export function useGetUnclaimedReferrals(): UseQueryHookResult<UnclaimedReferralResponse> {
+  return useQuery(() => defaultApiClient.getUnclaimedReferrals());
 }
 //#endregion
 
@@ -853,6 +900,10 @@ export async function getRewardsAnalytics(): Promise<RewardsAnalytics> {
 
 export async function getClaimAnalytics(): Promise<ClaimAnalytics> {
   return defaultApiClient.getClaimAnalytics();
+}
+
+export async function getUnclaimedReferrals(): Promise<UnclaimedReferralResponse> {
+  return defaultApiClient.getUnclaimedReferrals();
 }
 //#endregion
 
@@ -921,6 +972,24 @@ export function useGetHourlyVolumeDistribution(
 }
 //#endregion
 
+//#region degen-revenue API Functions
+export async function getDegenRevenue(
+  timeFrom?: number,
+  timeTo?: number
+): Promise<DegenRevenueResponse> {
+  return defaultApiClient.getDegenRevenue(timeFrom, timeTo);
+}
+//#endregion
+
+//#region degen-revenue Hooks
+export function useGetDegenRevenue(
+  timeFrom?: number,
+  timeTo?: number
+): UseQueryHookResult<DegenRevenueResponse> {
+  return useQuery(() => defaultApiClient.getDegenRevenue(timeFrom, timeTo));
+}
+//#endregion
+
 export default {
   default: defaultApiClient,
   getPlayerBehaviorDashboard,
@@ -963,5 +1032,9 @@ export default {
   getVolumeStats,
   getHourlyVolumeDistribution,
   useGetVolumeStats,
-  useGetHourlyVolumeDistribution
+  useGetHourlyVolumeDistribution,
+  getDegenRevenue,
+  getUnclaimedReferrals,
+  useGetDegenRevenue,
+  useGetUnclaimedReferrals
 };

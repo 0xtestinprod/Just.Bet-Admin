@@ -34,12 +34,14 @@ import {
   UserX2Icon,
   X,
   Gauge,
-  BarChart
+  BarChart,
+  Wallet
 } from 'lucide-react';
 
 export type Icon = LucideIcon;
 
 export const Icons = {
+  revenue: Wallet,
   volume: BarChart,
   performance: Gauge,
   referral: Award,
