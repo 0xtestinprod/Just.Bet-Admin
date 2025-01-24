@@ -45,7 +45,6 @@ export default function PlayerSegmentationDashboard() {
   const [playerSegments, setPlayerSegments] = useState<
     PlayerSegmentation.PlayerSegmentOutput[]
   >([]);
-  const [totalPages, setTotalPages] = useState(1);
   const [refetchQueryInput, setRefetchQueryInput] =
     useState<PlayerSegmentation.PlayerSegmentsInput | null>(null);
   const queryInput = useMemo(
@@ -61,19 +60,19 @@ export default function PlayerSegmentationDashboard() {
   const {
     data: allSegments = [],
     loading: isLoading,
+    error,
     refetch
   } = PlayerSegmentation.useGetPlayerSegments(queryInput, [refetchQueryInput]);
 
-  useEffect(() => {
-    if (allSegments) {
-      // Calculate total pages based on all segments
-      setTotalPages(Math.ceil(allSegments.length / ITEMS_PER_PAGE));
+  const memoizedTotalPages = useMemo(
+    () => Math.ceil((allSegments?.length ?? 0) / ITEMS_PER_PAGE),
+    [allSegments]
+  );
 
-      // Get current page segments
-      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-      const endIndex = startIndex + ITEMS_PER_PAGE;
-      setPlayerSegments(allSegments.slice(startIndex, endIndex));
-    }
+  const currentPageSegments = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return allSegments?.slice(startIndex, endIndex) ?? [];
   }, [allSegments, currentPage]);
 
   const handleApplyFilters = () => {
@@ -92,6 +91,10 @@ export default function PlayerSegmentationDashboard() {
     },
     {} as Record<PlayerSegmentType, number>
   );
+
+  if (error) {
+    throw error;
+  }
 
   return (
     <div>
@@ -237,7 +240,7 @@ export default function PlayerSegmentationDashboard() {
               </TableCell>
             </TableRow>
           ) : (
-            playerSegments.map((segment) => (
+            currentPageSegments.map((segment) => (
               <TableRow key={segment.player}>
                 <TableCell>{segment.player}</TableCell>
                 <TableCell>{segment.segment}</TableCell>
@@ -270,7 +273,7 @@ export default function PlayerSegmentationDashboard() {
               isActive={currentPage !== 1}
             />
           </PaginationItem>
-          {[...Array(totalPages)].map((_, i) => (
+          {[...Array(memoizedTotalPages)].map((_, i) => (
             <PaginationItem key={i}>
               <PaginationLink
                 onClick={() => handlePageChange(i + 1)}
@@ -283,9 +286,10 @@ export default function PlayerSegmentationDashboard() {
           <PaginationItem>
             <PaginationNext
               onClick={() =>
-                currentPage < totalPages && handlePageChange(currentPage + 1)
+                currentPage < memoizedTotalPages &&
+                handlePageChange(currentPage + 1)
               }
-              isActive={currentPage !== totalPages}
+              isActive={currentPage !== memoizedTotalPages}
             />
           </PaginationItem>
         </PaginationContent>

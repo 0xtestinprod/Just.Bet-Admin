@@ -18,14 +18,16 @@ export default function VolumeStatsDashboard() {
     : undefined;
   const timeTo = date?.to ? Math.floor(date.to.getTime() / 1000) : undefined;
 
-  const { data: volumeStats, loading: volumeLoading } =
-    Volume.useGetVolumeStats(timeFrom, timeTo);
+  const { data: volumeStats, error } = Volume.useGetVolumeStats(
+    timeFrom,
+    timeTo
+  );
 
-  const { data: hourlyData, loading: hourlyLoading } =
+  const { data: hourlyData, error: hourlyError } =
     Volume.useGetHourlyVolumeDistribution(timeFrom, timeTo);
 
-  if (volumeLoading || hourlyLoading) {
-    return null;
+  if (error || hourlyError) {
+    throw error || hourlyError;
   }
 
   return (

@@ -123,8 +123,8 @@ export function RevenueStats() {
     }));
   };
 
-  if (error || loading) {
-    return null;
+  if (error) {
+    throw error;
   }
 
   return (

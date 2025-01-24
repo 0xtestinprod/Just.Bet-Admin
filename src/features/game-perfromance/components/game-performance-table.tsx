@@ -72,16 +72,7 @@ export function GamePerformanceTable({
   };
 
   if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className='text-red-500'>Error Loading Data</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>{error.message}</p>
-        </CardContent>
-      </Card>
-    );
+    throw error;
   }
 
   return (

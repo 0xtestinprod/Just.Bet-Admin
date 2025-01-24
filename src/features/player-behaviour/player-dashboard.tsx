@@ -160,14 +160,6 @@ export default function PlayerDashboard({
     }));
   };
 
-  if (error) {
-    return (
-      <div className='flex items-center justify-center p-8 text-red-500'>
-        Error loading dashboard data: {error.message}
-      </div>
-    );
-  }
-
   return (
     <div className='flex w-full flex-col gap-4'>
       <div className='flex flex-col gap-4'>
