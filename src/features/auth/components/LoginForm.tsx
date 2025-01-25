@@ -7,14 +7,13 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import Link from 'next/link';
-import { type LoginDto, useLogin } from '@/models/auth';
+import { type LoginDto } from '@/models/auth';
 
 const EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 
 export default function LoginForm() {
   const router = useRouter();
-  const [login, { loading }] = useLogin();
+
   const {
     register,
     handleSubmit,
@@ -71,7 +70,6 @@ export default function LoginForm() {
               message: 'Please enter a valid email address'
             }
           })}
-          disabled={loading}
           placeholder='name@example.com'
           aria-invalid={!!errors.email}
         />
@@ -96,7 +94,6 @@ export default function LoginForm() {
               message: 'Password must be between 6 and 20 characters'
             }
           })}
-          disabled={loading}
           aria-invalid={!!errors.password}
         />
         {errors.password && (
@@ -110,8 +107,8 @@ export default function LoginForm() {
         </Link>
       </div> */}
 
-      <Button type='submit' className='w-full' disabled={loading}>
-        {loading ? 'Signing in...' : 'Sign in'}
+      <Button type='submit' className='w-full'>
+        Sign in
       </Button>
 
       {/* <div className='text-center text-sm'>

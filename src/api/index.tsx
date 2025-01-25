@@ -5,8 +5,11 @@
 import { AxiosInstance } from 'axios';
 import React from 'react';
 import { axiosInstance } from '@/lib/axios';
+import { getSession } from 'next-auth/react';
 import { useSession } from 'next-auth/react';
 import { createServerApiClient } from './server-api-client';
+import { useAuthenticatedApiClient } from './clientside-api-client';
+import { getServerSession, Session } from 'next-auth';
 
 //#region utils
 type UseQueryHookResult<ResultT> = {
@@ -485,7 +488,8 @@ export class ApiClient {
 
   //#region Player Behavior Dashboard endpoints
   async getPlayerBehaviorDashboard(
-    input: PlayerBehaviorInput
+    input: PlayerBehaviorInput,
+    token?: string
   ): Promise<DashboardStatisticsResponse> {
     try {
       const response = await this.client.get(
@@ -494,6 +498,9 @@ export class ApiClient {
           params: {
             timeFrom: input.timeFrom,
             timeTo: input.timeTo
+          },
+          headers: {
+            Authorization: `Bearer ${token}`
           }
         }
       );
@@ -730,11 +737,12 @@ export async function getPlayerBehaviorDashboard(
 // #region Player Behavior Dashboard Hooks
 export function useGetPlayerBehaviorDashboard(
   input: PlayerBehaviorInput,
-  dependencies: any[] = []
+  dependencies: any[] = [],
+  token?: string
 ): UseQueryHookResult<DashboardStatisticsResponse> {
   const apiClient = useAuthenticatedApiClient();
   return useQuery(
-    () => apiClient.getPlayerBehaviorDashboard(input),
+    () => apiClient.getPlayerBehaviorDashboard(input, token),
     dependencies
   );
 }
@@ -1048,16 +1056,3 @@ export default {
   useGetDegenRevenue,
   useGetUnclaimedReferrals
 };
-
-export function useAuthenticatedApiClient() {
-  const { data: session } = useSession();
-  const apiClientRef = React.useRef(new ApiClient());
-
-  React.useEffect(() => {
-    if (session?.user?.token) {
-      apiClientRef.current.setAuthToken(session.user.token);
-    }
-  }, [session]);
-
-  return apiClientRef.current;
-}
