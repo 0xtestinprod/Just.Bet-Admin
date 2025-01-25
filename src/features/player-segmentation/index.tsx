@@ -36,7 +36,11 @@ import {
 
 const ITEMS_PER_PAGE = 10;
 
-export default function PlayerSegmentationDashboard() {
+export default function PlayerSegmentationDashboard({
+  authToken
+}: {
+  authToken?: string;
+}) {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [highRollerPercentile, setHighRollerPercentile] = useState(80);
@@ -59,7 +63,11 @@ export default function PlayerSegmentationDashboard() {
     loading: isLoading,
     error,
     refetch
-  } = PlayerSegmentation.useGetPlayerSegments(queryInput, [refetchQueryInput]);
+  } = PlayerSegmentation.useGetPlayerSegments(
+    queryInput,
+    [refetchQueryInput],
+    authToken
+  );
 
   const memoizedTotalPages = useMemo(
     () => Math.ceil((allSegments?.length ?? 0) / ITEMS_PER_PAGE),

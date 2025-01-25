@@ -5,13 +5,10 @@
 import { AxiosInstance } from 'axios';
 import React from 'react';
 import { axiosInstance } from '@/lib/axios';
-import { getSession } from 'next-auth/react';
-import { useSession } from 'next-auth/react';
 import { createServerApiClient } from './server-api-client';
 import { useAuthenticatedApiClient } from './clientside-api-client';
-import { getServerSession, Session } from 'next-auth';
 
-//#region utils
+//#region Utils
 type UseQueryHookResult<ResultT> = {
   data: ResultT | null;
   loading: boolean;
@@ -88,6 +85,7 @@ export function useMutation<InputT, ResultT>(
 
 //#endregion
 
+//#region Types
 //#region Games Entities
 
 export interface GameCollection {
@@ -417,6 +415,8 @@ export interface UnclaimedReferralResponse {
 }
 //#endregion
 
+//#endregion
+
 //#region Api Client
 export class ApiClient {
   private basePath: string;
@@ -518,19 +518,32 @@ export class ApiClient {
   //#endregion
 
   //#region Game Performance endpoints
-  async getGamePerformance(): Promise<GamePerformanceResponse[]> {
-    const response = await this.get<GamePerformanceResponse[]>(
-      'games/stats/performance'
-    );
-
+  async getGamePerformance(token?: string): Promise<GamePerformanceResponse[]> {
+    const response = await this.client.get('games/stats/performance', {
+      headers: {
+        ...this.getHeaders(),
+        Authorization: token
+          ? `Bearer ${token}`
+          : this.getHeaders().Authorization
+      }
+    });
     return response.data;
   }
 
   async getGamePerformanceByToken(
-    address: string
+    address: string,
+    token?: string
   ): Promise<GamePerformanceResponse[]> {
-    const response = await this.get<GamePerformanceResponse[]>(
-      `games/stats/performance/token/${address}`
+    const response = await this.client.get(
+      `games/stats/performance/token/${address}`,
+      {
+        headers: {
+          ...this.getHeaders(),
+          Authorization: token
+            ? `Bearer ${token}`
+            : this.getHeaders().Authorization
+        }
+      }
     );
     return response.data;
   }
@@ -615,108 +628,174 @@ export class ApiClient {
   //#endregion
 
   //#region Game endpoints
-  async getAllGames(): Promise<string[]> {
-    const response = await this.get<string[]>('games/all');
+  async getAllGames(token?: string): Promise<string[]> {
+    const response = await this.client.get('games/all', {
+      headers: {
+        ...this.getHeaders(),
+        Authorization: token
+          ? `Bearer ${token}`
+          : this.getHeaders().Authorization
+      }
+    });
     return response.data;
   }
   //#endregion
 
   //#region Token endpoints
-  async getAllTokens(): Promise<Token[]> {
-    const response = await this.get<Token[]>('token/all');
-    return response.data;
+  async getAllTokens(token?: string): Promise<Token[]> {
+    const response = await this.client.get('token/all', {
+      headers: {
+        ...this.getHeaders(),
+        Authorization: token
+          ? `Bearer ${token}`
+          : this.getHeaders().Authorization
+      }
+    });
+    return response.data.data;
   }
 
-  async getTokenByAddress(address: string): Promise<Token> {
-    const response = await this.get<Token>(`token/${address}`);
-
-    return response.data;
+  async getTokenByAddress(address: string, token?: string): Promise<Token> {
+    const response = await this.client.get(`token/${address}`, {
+      headers: {
+        ...this.getHeaders(),
+        Authorization: token
+          ? `Bearer ${token}`
+          : this.getHeaders().Authorization
+      }
+    });
+    return response.data.data;
   }
   //#endregion
 
   //#region Referral Program endpoints
-  async getReferralStatistics(): Promise<ReferralStatisticsResponse> {
-    const response = await this.get<ReferralStatisticsResponse>(
-      'referrals/statistics'
-    );
-    return response.data;
+  async getReferralStatistics(
+    token?: string
+  ): Promise<ReferralStatisticsResponse> {
+    const response = await this.client.get('referrals/statistics', {
+      headers: {
+        ...this.getHeaders(),
+        Authorization: token
+          ? `Bearer ${token}`
+          : this.getHeaders().Authorization
+      }
+    });
+    return response.data.data;
   }
   //#endregion
 
   //#region Rewards Program endpoints
-  async getRewardsAnalytics(): Promise<RewardsAnalytics> {
-    const response = await this.get<RewardsAnalytics>(
-      'referrals/rewards/analytics'
-    );
-    return response.data;
+  async getRewardsAnalytics(token?: string): Promise<RewardsAnalytics> {
+    const response = await this.client.get('referrals/rewards/analytics', {
+      headers: {
+        ...this.getHeaders(),
+        Authorization: token
+          ? `Bearer ${token}`
+          : this.getHeaders().Authorization
+      }
+    });
+    return response.data.data;
   }
 
-  async getClaimAnalytics(): Promise<ClaimAnalytics> {
-    const response = await this.get<ClaimAnalytics>('referrals/rewards/claims');
-    return response.data;
+  async getClaimAnalytics(token?: string): Promise<ClaimAnalytics> {
+    const response = await this.client.get('referrals/rewards/claims', {
+      headers: {
+        ...this.getHeaders(),
+        Authorization: token
+          ? `Bearer ${token}`
+          : this.getHeaders().Authorization
+      }
+    });
+    return response.data.data;
   }
 
-  async getUnclaimedReferrals(): Promise<UnclaimedReferralResponse> {
-    const response = await this.get<UnclaimedReferralResponse>(
-      'additional-stats/unclaimed-referrals'
+  async getUnclaimedReferrals(
+    token?: string
+  ): Promise<UnclaimedReferralResponse> {
+    const response = await this.client.get(
+      'additional-stats/unclaimed-referrals',
+      {
+        headers: {
+          ...this.getHeaders(),
+          Authorization: token
+            ? `Bearer ${token}`
+            : this.getHeaders().Authorization
+        }
+      }
     );
-    return response.data;
+    return response.data.data;
   }
   //#endregion
 
   //#region Player Segmentation endpoints
   async getPlayerSegments(
-    params: PlayerSegmentsInput
+    params: PlayerSegmentsInput,
+    token?: string
   ): Promise<PlayerSegmentOutput[]> {
-    const response = await this.get<PlayerSegmentOutput[]>(
-      'player-segmentation/segments',
-      params
-    );
-
-    return response.data;
+    const response = await this.client.get('player-segmentation/segments', {
+      params,
+      headers: {
+        ...this.getHeaders(),
+        Authorization: token
+          ? `Bearer ${token}`
+          : this.getHeaders().Authorization
+      }
+    });
+    return response.data.data;
   }
   //#endregion
 
   //#region Volume endpoints
   async getVolumeStats(
     timeFrom?: number,
-    timeTo?: number
+    timeTo?: number,
+    token?: string
   ): Promise<VolumeStatsResponse> {
-    const response = await this.get<VolumeStatsResponse>('volume-stats', {
-      timeFrom,
-      timeTo
+    const response = await this.client.get('volume-stats', {
+      params: { timeFrom, timeTo },
+      headers: {
+        ...this.getHeaders(),
+        Authorization: token
+          ? `Bearer ${token}`
+          : this.getHeaders().Authorization
+      }
     });
-    return response.data;
+    return response.data.data;
   }
 
   async getHourlyVolumeDistribution(
     timeFrom?: number,
-    timeTo?: number
+    timeTo?: number,
+    token?: string
   ): Promise<HourlyVolumeDistribution[]> {
-    const response = await this.get<HourlyVolumeDistribution[]>(
-      'volume-stats/hourly-distribution',
-      {
-        timeFrom,
-        timeTo
+    const response = await this.client.get('volume-stats/hourly-distribution', {
+      params: { timeFrom, timeTo },
+      headers: {
+        ...this.getHeaders(),
+        Authorization: token
+          ? `Bearer ${token}`
+          : this.getHeaders().Authorization
       }
-    );
-    return response.data;
+    });
+    return response.data.data;
   }
   //#endregion
 
   //#region degen-revenue endpoints
   async getDegenRevenue(
     timeFrom?: number,
-    timeTo?: number
+    timeTo?: number,
+    token?: string
   ): Promise<DegenRevenueResponse> {
-    const response = await this.get<DegenRevenueResponse>(
-      'additional-stats/degen-revenue',
-      {
-        timeFrom,
-        timeTo
+    const response = await this.client.get('additional-stats/degen-revenue', {
+      params: { timeFrom, timeTo },
+      headers: {
+        ...this.getHeaders(),
+        Authorization: token
+          ? `Bearer ${token}`
+          : this.getHeaders().Authorization
       }
-    );
-    return response.data;
+    });
+    return response.data.data;
   }
   //#endregion
 }
@@ -725,6 +804,7 @@ const defaultApiClient = new ApiClient();
 
 //#endregion
 
+//#region API Functions
 // #region Player Behavior Dashboard API Functions
 export async function getPlayerBehaviorDashboard(
   input: PlayerBehaviorInput
@@ -837,155 +917,211 @@ export function useGetAllPlayers(): UseQueryHookResult<string[]> {
 }
 //#endregion
 
-//#region Game Performance API Functions
-export async function getAllGames(): Promise<string[]> {
-  return defaultApiClient.getAllGames();
+//#region Game API Functions
+export async function getAllGames(token?: string): Promise<string[]> {
+  const apiClient = await createServerApiClient();
+  return apiClient.getAllGames(token);
 }
+//#endregion
 
-export async function getGamePerformance(): Promise<GamePerformanceResponse[]> {
-  return defaultApiClient.getGamePerformance();
+//#region Game Hooks
+export function useGetAllGames(token?: string): UseQueryHookResult<string[]> {
+  const apiClient = useAuthenticatedApiClient();
+  return useQuery(() => apiClient.getAllGames(token));
+}
+//#endregion
+
+//#region Game Performance API Functions
+export async function getGamePerformance(
+  token?: string
+): Promise<GamePerformanceResponse[]> {
+  const apiClient = await createServerApiClient();
+  return apiClient.getGamePerformance(token);
 }
 
 export async function getGamePerformanceByToken(
-  address: string
+  address: string,
+  token?: string
 ): Promise<GamePerformanceResponse[]> {
-  return defaultApiClient.getGamePerformanceByToken(address);
+  const apiClient = await createServerApiClient();
+  return apiClient.getGamePerformanceByToken(address, token);
 }
 //#endregion
 
 //#region Game Performance Hooks
-export function useGetAllGames(): UseQueryHookResult<string[]> {
-  return useQuery(() => defaultApiClient.getAllGames());
-}
-
-export function useGetGamePerformance(): UseQueryHookResult<
-  GamePerformanceResponse[]
-> {
-  return useQuery(() => defaultApiClient.getGamePerformance());
+export function useGetGamePerformance(
+  token?: string
+): UseQueryHookResult<GamePerformanceResponse[]> {
+  const apiClient = useAuthenticatedApiClient();
+  return useQuery(() => apiClient.getGamePerformance(token));
 }
 
 export function useGetGamePerformanceByToken(
-  address: string
+  address: string,
+
+  token?: string
 ): UseQueryHookResult<GamePerformanceResponse[]> {
-  return useQuery(() => defaultApiClient.getGamePerformanceByToken(address));
+  const apiClient = useAuthenticatedApiClient();
+  return useQuery(() => apiClient.getGamePerformanceByToken(address, token));
 }
 //#endregion
 
 //#region Token API Functions
-export async function getAllTokens(): Promise<Token[]> {
-  return defaultApiClient.getAllTokens();
+export async function getAllTokens(token?: string): Promise<Token[]> {
+  const apiClient = await createServerApiClient();
+  return apiClient.getAllTokens(token);
 }
 
-export async function getTokenByAddress(address: string): Promise<Token> {
-  return defaultApiClient.getTokenByAddress(address);
+export async function getTokenByAddress(
+  address: string,
+  token?: string
+): Promise<Token> {
+  const apiClient = await createServerApiClient();
+  return apiClient.getTokenByAddress(address, token);
 }
 //#endregion
 
 //#region Token Hooks
-export function useGetAllTokens(): UseQueryHookResult<Token[]> {
-  return useQuery(() => defaultApiClient.getAllTokens());
+export function useGetAllTokens(token?: string): UseQueryHookResult<Token[]> {
+  const apiClient = useAuthenticatedApiClient();
+  return useQuery(() => apiClient.getAllTokens(token));
 }
 
 export function useGetTokenByAddress(
-  address: string
+  address: string,
+  token?: string
 ): UseQueryHookResult<Token> {
-  return useQuery(() => defaultApiClient.getTokenByAddress(address));
+  const apiClient = useAuthenticatedApiClient();
+  return useQuery(() => apiClient.getTokenByAddress(address, token));
 }
 //#endregion
 
 //#region Referral Program API Functions
-export async function getReferralStatistics(): Promise<ReferralStatisticsResponse> {
-  return defaultApiClient.getReferralStatistics();
+export async function getReferralStatistics(
+  token?: string
+): Promise<ReferralStatisticsResponse> {
+  const apiClient = await createServerApiClient();
+  return apiClient.getReferralStatistics(token);
 }
-
-//TODO: Add unclaimed stats for referral program api functions
 //#endregion
 
 //#region Referral Program Hooks
-export function useGetReferralStatistics(): UseQueryHookResult<ReferralStatisticsResponse> {
-  return useQuery(() => defaultApiClient.getReferralStatistics());
-}
-
-export function useGetUnclaimedReferrals(): UseQueryHookResult<UnclaimedReferralResponse> {
-  return useQuery(() => defaultApiClient.getUnclaimedReferrals());
+export function useGetReferralStatistics(
+  token?: string
+): UseQueryHookResult<ReferralStatisticsResponse> {
+  const apiClient = useAuthenticatedApiClient();
+  return useQuery(() => apiClient.getReferralStatistics(token));
 }
 //#endregion
 
 //#region Rewards Program API Functions
-export async function getRewardsAnalytics(): Promise<RewardsAnalytics> {
-  return defaultApiClient.getRewardsAnalytics();
+export async function getRewardsAnalytics(
+  token?: string
+): Promise<RewardsAnalytics> {
+  const apiClient = await createServerApiClient();
+  return apiClient.getRewardsAnalytics(token);
 }
 
-export async function getClaimAnalytics(): Promise<ClaimAnalytics> {
-  return defaultApiClient.getClaimAnalytics();
+export async function getClaimAnalytics(
+  token?: string
+): Promise<ClaimAnalytics> {
+  const apiClient = await createServerApiClient();
+  return apiClient.getClaimAnalytics(token);
 }
 
-export async function getUnclaimedReferrals(): Promise<UnclaimedReferralResponse> {
-  return defaultApiClient.getUnclaimedReferrals();
+export async function getUnclaimedReferrals(
+  token?: string
+): Promise<UnclaimedReferralResponse> {
+  const apiClient = await createServerApiClient();
+  return apiClient.getUnclaimedReferrals(token);
 }
 //#endregion
 
 //#region Rewards Program Hooks
-export function useGetRewardsAnalytics(): UseQueryHookResult<RewardsAnalytics> {
-  return useQuery(() => defaultApiClient.getRewardsAnalytics());
+export function useGetRewardsAnalytics(
+  token?: string
+): UseQueryHookResult<RewardsAnalytics> {
+  const apiClient = useAuthenticatedApiClient();
+  return useQuery(() => apiClient.getRewardsAnalytics(token));
 }
 
-export function useGetClaimAnalytics(): UseQueryHookResult<ClaimAnalytics> {
-  return useQuery(() => defaultApiClient.getClaimAnalytics());
+export function useGetClaimAnalytics(
+  token?: string
+): UseQueryHookResult<ClaimAnalytics> {
+  const apiClient = useAuthenticatedApiClient();
+  return useQuery(() => apiClient.getClaimAnalytics(token));
+}
+
+export function useGetUnclaimedReferrals(
+  token?: string
+): UseQueryHookResult<UnclaimedReferralResponse> {
+  const apiClient = useAuthenticatedApiClient();
+  return useQuery(() => apiClient.getUnclaimedReferrals(token));
 }
 //#endregion
 
 //#region Player Segmentation API Functions
 export async function getPlayerSegments(
-  params: PlayerSegmentsInput
+  params: PlayerSegmentsInput,
+  token?: string
 ): Promise<PlayerSegmentOutput[]> {
-  return defaultApiClient.getPlayerSegments(params);
+  const apiClient = await createServerApiClient();
+  return apiClient.getPlayerSegments(params, token);
 }
 //#endregion
 
 //#region Player Segmentation Hooks
-export const useGetPlayerSegments = (
+export function useGetPlayerSegments(
   params: PlayerSegmentsInput,
-  dependencies: any[] = []
-): UseQueryHookResult<PlayerSegmentOutput[]> => {
+  dependencies: any[] = [],
+  token?: string
+): UseQueryHookResult<PlayerSegmentOutput[]> {
+  const apiClient = useAuthenticatedApiClient();
   return useQuery(
-    () => defaultApiClient.getPlayerSegments(params),
+    () => apiClient.getPlayerSegments(params, token),
     dependencies
   );
-};
-
+}
 //#endregion
 
 //#region Volume API Functions
 export async function getVolumeStats(
   timeFrom?: number,
-  timeTo?: number
+  timeTo?: number,
+  token?: string
 ): Promise<VolumeStatsResponse> {
-  return defaultApiClient.getVolumeStats(timeFrom, timeTo);
+  const apiClient = await createServerApiClient();
+  return apiClient.getVolumeStats(timeFrom, timeTo, token);
 }
 
 export async function getHourlyVolumeDistribution(
   timeFrom?: number,
-  timeTo?: number
+  timeTo?: number,
+  token?: string
 ): Promise<HourlyVolumeDistribution[]> {
-  return defaultApiClient.getHourlyVolumeDistribution(timeFrom, timeTo);
+  const apiClient = await createServerApiClient();
+  return apiClient.getHourlyVolumeDistribution(timeFrom, timeTo, token);
 }
 //#endregion
 
 //#region Volume Hooks
 export function useGetVolumeStats(
   timeFrom?: number,
-  timeTo?: number
+  timeTo?: number,
+  token?: string
 ): UseQueryHookResult<VolumeStatsResponse> {
-  return useQuery(() => defaultApiClient.getVolumeStats(timeFrom, timeTo));
+  const apiClient = useAuthenticatedApiClient();
+  return useQuery(() => apiClient.getVolumeStats(timeFrom, timeTo, token));
 }
 
 export function useGetHourlyVolumeDistribution(
   timeFrom?: number,
-  timeTo?: number
+  timeTo?: number,
+  token?: string
 ): UseQueryHookResult<HourlyVolumeDistribution[]> {
+  const apiClient = useAuthenticatedApiClient();
   return useQuery(() =>
-    defaultApiClient.getHourlyVolumeDistribution(timeFrom, timeTo)
+    apiClient.getHourlyVolumeDistribution(timeFrom, timeTo, token)
   );
 }
 //#endregion
@@ -993,19 +1129,25 @@ export function useGetHourlyVolumeDistribution(
 //#region degen-revenue API Functions
 export async function getDegenRevenue(
   timeFrom?: number,
-  timeTo?: number
+  timeTo?: number,
+  token?: string
 ): Promise<DegenRevenueResponse> {
-  return defaultApiClient.getDegenRevenue(timeFrom, timeTo);
+  const apiClient = await createServerApiClient();
+  return apiClient.getDegenRevenue(timeFrom, timeTo, token);
 }
 //#endregion
 
 //#region degen-revenue Hooks
 export function useGetDegenRevenue(
   timeFrom?: number,
-  timeTo?: number
+  timeTo?: number,
+  token?: string
 ): UseQueryHookResult<DegenRevenueResponse> {
-  return useQuery(() => defaultApiClient.getDegenRevenue(timeFrom, timeTo));
+  const apiClient = useAuthenticatedApiClient();
+  return useQuery(() => apiClient.getDegenRevenue(timeFrom, timeTo, token));
 }
+//#endregion
+
 //#endregion
 
 export default {

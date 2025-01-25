@@ -69,7 +69,7 @@ function generateColors(count: number) {
   return colors;
 }
 
-export function UnclaimedStats() {
+export function UnclaimedStats({ authToken }: { authToken?: string }) {
   const [sortConfig, setSortConfig] = useState<{
     key: keyof TokenData;
     direction: 'asc' | 'desc';
@@ -78,13 +78,8 @@ export function UnclaimedStats() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-  const {
-    data: unclaimedData,
-    error,
-    loading
-  } = Referral.useGetUnclaimedReferrals();
+  const { data: unclaimedData } = Referral.useGetUnclaimedReferrals(authToken);
 
-  // First filter the data
   const filteredData = useMemo(() => {
     if (!unclaimedData?.unclaimedByToken) return [];
     return unclaimedData.unclaimedByToken.filter((item) =>
@@ -92,7 +87,6 @@ export function UnclaimedStats() {
     );
   }, [unclaimedData?.unclaimedByToken, searchQuery]);
 
-  // Then sort the filtered data
   const sortedData = useMemo(() => {
     return [...filteredData].sort((a, b) => {
       const aValue = a[sortConfig.key];
@@ -102,7 +96,6 @@ export function UnclaimedStats() {
     });
   }, [filteredData, sortConfig]);
 
-  // Finally, paginate the sorted data
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
@@ -114,7 +107,6 @@ export function UnclaimedStats() {
     [sortedData.length, pageSize]
   );
 
-  // Prepare data for the pie chart
   const chartData = {
     labels: sortedData
       .map((item) => abbreviateAddress(item.token))
@@ -134,10 +126,6 @@ export function UnclaimedStats() {
         current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
     }));
   };
-
-  if (error || loading) {
-    return null;
-  }
 
   return (
     <div className='space-y-8'>

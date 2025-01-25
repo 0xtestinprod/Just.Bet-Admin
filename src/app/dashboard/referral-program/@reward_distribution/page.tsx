@@ -1,9 +1,13 @@
 import RewardsStatisticsDashboard from '@/features/rewards-statistics';
+import { authConfig } from '@/lib/next-auth.config';
+import { getServerSession } from 'next-auth';
 
-export default function RewardDistribution() {
+export default async function RewardDistribution() {
+  const session = await getServerSession(authConfig);
+
   return (
     <>
-      <RewardsStatisticsDashboard />
+      <RewardsStatisticsDashboard authToken={session?.user?.token} />
     </>
   );
 }

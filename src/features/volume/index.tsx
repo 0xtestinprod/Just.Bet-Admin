@@ -10,7 +10,11 @@ import { GameStatsTable } from './components/game-stats-table';
 import { GameVolumeChart } from './components/game-volume-chart';
 import * as Volume from '@/models/volume';
 
-export default function VolumeStatsDashboard() {
+export default function VolumeStatsDashboard({
+  authToken
+}: {
+  authToken?: string;
+}) {
   const [date, setDate] = useState<DateRange | undefined>();
 
   const timeRange = useMemo(
@@ -21,17 +25,17 @@ export default function VolumeStatsDashboard() {
     [date]
   );
 
-  const { data: volumeStats, error } = Volume.useGetVolumeStats(
+  const { data: volumeStats } = Volume.useGetVolumeStats(
     timeRange.timeFrom,
-    timeRange.timeTo
+    timeRange.timeTo,
+    authToken
   );
 
-  const { data: hourlyData, error: hourlyError } =
-    Volume.useGetHourlyVolumeDistribution(timeRange.timeFrom, timeRange.timeTo);
-
-  if (error || hourlyError) {
-    throw error || hourlyError;
-  }
+  const { data: hourlyData } = Volume.useGetHourlyVolumeDistribution(
+    timeRange.timeFrom,
+    timeRange.timeTo,
+    authToken
+  );
 
   return (
     <div className='container mx-auto py-10'>

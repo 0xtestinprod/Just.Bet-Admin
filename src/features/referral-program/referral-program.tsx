@@ -2,8 +2,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Award, DollarSign, Users } from 'lucide-react';
 import * as Referral from '@/models/referral';
 
-export default async function ReferralProgramDashboard() {
-  const data = await Referral.getReferralStatistics();
+export default async function ReferralProgramDashboard({
+  authToken
+}: {
+  authToken?: string;
+}) {
+  const data = await Referral.getReferralStatistics(authToken);
+
+  console.log('data', data);
 
   const formatLargeNumber = (num: number) => {
     if (num >= 1e12) return `${(num / 1e12).toFixed(2)}T`;

@@ -37,7 +37,6 @@ import {
   Legend
 } from 'chart.js';
 import { ArrowUpDown, Search } from 'lucide-react';
-import { useSession } from 'next-auth/react';
 
 // Register ChartJS components
 ChartJS.register(
@@ -69,22 +68,22 @@ interface GameData {
   revenue: number;
 }
 
-export function RevenueStats() {
-  const session = useSession();
-  console.log('session', session);
-
+export function RevenueStats({ authToken }: { authToken?: string }) {
   const [sortConfig, setSortConfig] = useState<{
     key: keyof GameData;
     direction: 'asc' | 'desc';
   }>({ key: 'revenue', direction: 'desc' });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-  // Fetch revenue data using the API hook
-  const { data: revenueData, error, loading } = Revenue.useGetDegenRevenue();
+  const { data: revenueData } = Revenue.useGetDegenRevenue(
+    undefined,
+    undefined,
+    authToken
+  );
 
-  // Filter and sort data based on search query and current configuration
   const filteredAndSortedData = useMemo(() => {
     if (!revenueData?.byGame) return [];
 
@@ -100,14 +99,12 @@ export function RevenueStats() {
       });
   }, [revenueData?.byGame, searchQuery, sortConfig]);
 
-  // Calculate pagination
   const totalPages = Math.ceil(filteredAndSortedData.length / pageSize);
   const paginatedData = filteredAndSortedData.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
 
-  // Prepare data for the chart
   const chartData = {
     labels: filteredAndSortedData.map((item) => item.game),
     datasets: [
@@ -127,10 +124,6 @@ export function RevenueStats() {
     }));
   };
 
-  if (error) {
-    throw error;
-  }
-
   return (
     <div className='space-y-8'>
       {/* Revenue Overview Cards */}
@@ -142,7 +135,7 @@ export function RevenueStats() {
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              ${revenueData?.totalRevenue.toLocaleString() ?? '0'}
+              ${(revenueData?.totalRevenue ?? 0).toLocaleString()}
             </div>
           </CardContent>
         </Card>
@@ -153,7 +146,7 @@ export function RevenueStats() {
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              ${revenueData?.feeRevenue.toLocaleString() ?? '0'}
+              ${(revenueData?.feeRevenue ?? 0).toLocaleString()}
             </div>
           </CardContent>
         </Card>
@@ -164,7 +157,7 @@ export function RevenueStats() {
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              ${revenueData?.lossRevenue.toLocaleString() ?? '0'}
+              ${(revenueData?.lossRevenue ?? 0).toLocaleString()}
             </div>
           </CardContent>
         </Card>
