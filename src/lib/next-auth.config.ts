@@ -86,7 +86,7 @@ export const authConfig = {
       // session still valid
       return token;
     },
-    async session({ session, token }: any) {
+    async session({ session, token, user }: any) {
       session.user = { ...(token.userData as any), token: token.token } as any;
       const expiresAt = Number(token.expiresAt);
       const expiresAtDate = new Date(expiresAt);
@@ -94,6 +94,8 @@ export const authConfig = {
         return null;
       }
       session.expires = expiresAtDate.toString();
+      console.log('session', session);
+
       return session;
     }
   },

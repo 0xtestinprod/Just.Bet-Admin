@@ -2,8 +2,14 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
-import axios, { AxiosInstance } from 'axios';
+import { AxiosInstance } from 'axios';
 import React from 'react';
+import { axiosInstance } from '@/lib/axios';
+import { getSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
+import { createServerApiClient } from './server-api-client';
+import { useAuthenticatedApiClient } from './clientside-api-client';
+import { getServerSession, Session } from 'next-auth';
 
 //#region utils
 type UseQueryHookResult<ResultT> = {
@@ -417,18 +423,22 @@ export class ApiClient {
   private headers: any;
   private client: AxiosInstance;
 
-  constructor(basePath = '/api') {
+  constructor(basePath = '/api', token?: string) {
     const base_url = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
     this.basePath = `${base_url}${basePath}`;
 
-    this.client = axios.create({
-      baseURL: this.basePath,
-      headers: {
-        'Cache-Control': 'no-cache',
-        Pragma: 'no-cache',
-        Expires: '0'
-      }
-    });
+    this.client = axiosInstance;
+
+    if (token) {
+      this.setAuthToken(token);
+    }
+  }
+
+  setAuthToken(token: string) {
+    this.headers = {
+      ...this.headers,
+      Authorization: `Bearer ${token}`
+    };
   }
 
   setBasePath(basePath: string) {
@@ -478,7 +488,8 @@ export class ApiClient {
 
   //#region Player Behavior Dashboard endpoints
   async getPlayerBehaviorDashboard(
-    input: PlayerBehaviorInput
+    input: PlayerBehaviorInput,
+    token?: string
   ): Promise<DashboardStatisticsResponse> {
     try {
       const response = await this.client.get(
@@ -487,6 +498,9 @@ export class ApiClient {
           params: {
             timeFrom: input.timeFrom,
             timeTo: input.timeTo
+          },
+          headers: {
+            Authorization: `Bearer ${token}`
           }
         }
       );
@@ -715,17 +729,20 @@ const defaultApiClient = new ApiClient();
 export async function getPlayerBehaviorDashboard(
   input: PlayerBehaviorInput
 ): Promise<DashboardStatisticsResponse> {
-  return defaultApiClient.getPlayerBehaviorDashboard(input);
+  const apiClient = await createServerApiClient();
+  return apiClient.getPlayerBehaviorDashboard(input);
 }
 //#endregion
 
 // #region Player Behavior Dashboard Hooks
 export function useGetPlayerBehaviorDashboard(
   input: PlayerBehaviorInput,
-  dependencies: any[] = []
+  dependencies: any[] = [],
+  token?: string
 ): UseQueryHookResult<DashboardStatisticsResponse> {
+  const apiClient = useAuthenticatedApiClient();
   return useQuery(
-    () => defaultApiClient.getPlayerBehaviorDashboard(input),
+    () => apiClient.getPlayerBehaviorDashboard(input, token),
     dependencies
   );
 }
@@ -815,7 +832,8 @@ export async function getAllPlayers(): Promise<string[]> {
 
 // #region Player Hooks
 export function useGetAllPlayers(): UseQueryHookResult<string[]> {
-  return useQuery(() => defaultApiClient.getAllPlayers());
+  const apiClient = useAuthenticatedApiClient();
+  return useQuery(() => apiClient.getAllPlayers());
 }
 //#endregion
 

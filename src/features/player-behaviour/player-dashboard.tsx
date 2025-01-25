@@ -33,6 +33,8 @@ import {
   Tooltip,
   ResponsiveContainer
 } from 'recharts';
+import { useSession } from 'next-auth/react';
+import { authConfig } from '@/lib/next-auth.config';
 
 export interface TimeRange {
   label: string;
@@ -65,10 +67,12 @@ const getTimeRange = (
 
 interface PlayerDashboardProps {
   initialPlayers: string[];
+  authToken?: string;
 }
 
 export default function PlayerDashboard({
-  initialPlayers
+  initialPlayers,
+  authToken
 }: PlayerDashboardProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<string>(
     initialPlayers[0]
@@ -102,11 +106,11 @@ export default function PlayerDashboard({
   );
 
   const { data: dashboardData, error } =
-    PlayerBehavior.useGetPlayerBehaviorDashboard(queryInput, [
-      selectedPlayer,
-      timeFrom,
-      timeTo
-    ]);
+    PlayerBehavior.useGetPlayerBehaviorDashboard(
+      queryInput,
+      [selectedPlayer, timeFrom, timeTo],
+      authToken
+    );
 
   // Update stable data when we get new data
   React.useEffect(() => {

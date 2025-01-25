@@ -14,12 +14,12 @@ export const axiosInstance = axios.create({
 });
 
 // Add an interceptor to handle logout redirects
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      signOut({ callbackUrl: '/' }); // Changed to redirect to homepage
-    }
-    return Promise.reject(error);
-  }
-);
+// axiosInstance.interceptors.response.use(
+//   (response) => response,
+//   (error) => {
+//     if (error.response?.status === 401) {
+//       signOut({ callbackUrl: '/' }); // Changed to redirect to homepage
+//     }
+//     return Promise.reject(error);
+//   }
+// );
