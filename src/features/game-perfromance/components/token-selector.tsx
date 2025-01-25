@@ -25,6 +25,14 @@ export function TokenSelector({
   onSelectToken,
   isLoading
 }: TokenSelectorProps) {
+  const handleValueChange = React.useCallback(
+    (value: string) => {
+      const token = tokens.find((t) => t.address === value);
+      onSelectToken(token || null);
+    },
+    [tokens, onSelectToken]
+  );
+
   if (isLoading) {
     return (
       <div className='flex h-10 items-center justify-center rounded-md border border-input bg-background px-3'>
@@ -34,13 +42,7 @@ export function TokenSelector({
   }
 
   return (
-    <Select
-      value={selectedToken?.address}
-      onValueChange={(value) => {
-        const token = tokens.find((t) => t.address === value);
-        onSelectToken(token || null);
-      }}
-    >
+    <Select value={selectedToken?.address} onValueChange={handleValueChange}>
       <SelectTrigger>
         <SelectValue placeholder='Select a token' />
       </SelectTrigger>

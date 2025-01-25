@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -34,18 +34,18 @@ import {
   PaginationPrevious
 } from '@/components/ui/pagination';
 
-const ITEMS_PER_PAGE = 10; // Define how many items we want per page
+const ITEMS_PER_PAGE = 10;
 
-export default function PlayerSegmentationDashboard() {
+export default function PlayerSegmentationDashboard({
+  authToken
+}: {
+  authToken?: string;
+}) {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [highRollerPercentile, setHighRollerPercentile] = useState(80);
   const [lowRollerPercentile, setLowRollerPercentile] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
-  const [playerSegments, setPlayerSegments] = useState<
-    PlayerSegmentation.PlayerSegmentOutput[]
-  >([]);
-  const [totalPages, setTotalPages] = useState(1);
   const [refetchQueryInput, setRefetchQueryInput] =
     useState<PlayerSegmentation.PlayerSegmentsInput | null>(null);
   const queryInput = useMemo(
@@ -61,20 +61,36 @@ export default function PlayerSegmentationDashboard() {
   const {
     data: allSegments = [],
     loading: isLoading,
+    error,
     refetch
-  } = PlayerSegmentation.useGetPlayerSegments(queryInput, [refetchQueryInput]);
+  } = PlayerSegmentation.useGetPlayerSegments(
+    queryInput,
+    [refetchQueryInput],
+    authToken
+  );
 
-  useEffect(() => {
-    if (allSegments) {
-      // Calculate total pages based on all segments
-      setTotalPages(Math.ceil(allSegments.length / ITEMS_PER_PAGE));
+  const memoizedTotalPages = useMemo(
+    () => Math.ceil((allSegments?.length ?? 0) / ITEMS_PER_PAGE),
+    [allSegments]
+  );
 
-      // Get current page segments
-      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-      const endIndex = startIndex + ITEMS_PER_PAGE;
-      setPlayerSegments(allSegments.slice(startIndex, endIndex));
-    }
+  const currentPageSegments = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return allSegments?.slice(startIndex, endIndex) ?? [];
   }, [allSegments, currentPage]);
+
+  const segmentCounts = useMemo(
+    () =>
+      (allSegments ?? []).reduce(
+        (acc, segment) => {
+          acc[segment.segment] = (acc[segment.segment] || 0) + 1;
+          return acc;
+        },
+        {} as Record<PlayerSegmentType, number>
+      ),
+    [allSegments]
+  );
 
   const handleApplyFilters = () => {
     setRefetchQueryInput(queryInput);
@@ -85,13 +101,9 @@ export default function PlayerSegmentationDashboard() {
     setCurrentPage(page);
   };
 
-  const segmentCounts = playerSegments.reduce(
-    (acc, segment) => {
-      acc[segment.segment] = (acc[segment.segment] || 0) + 1;
-      return acc;
-    },
-    {} as Record<PlayerSegmentType, number>
-  );
+  if (error) {
+    throw error;
+  }
 
   return (
     <div>
@@ -118,7 +130,7 @@ export default function PlayerSegmentationDashboard() {
                 mode='single'
                 selected={dateFrom}
                 onSelect={(date: Date | undefined) => {
-                  setDateFrom(date);
+                  setDateFrom(date ?? new Date());
                 }}
                 initialFocus
               />
@@ -145,7 +157,7 @@ export default function PlayerSegmentationDashboard() {
                 mode='single'
                 selected={dateTo}
                 onSelect={(date: Date | undefined) => {
-                  setDateTo(date);
+                  setDateTo(date ?? new Date());
                 }}
                 initialFocus
               />
@@ -230,14 +242,14 @@ export default function PlayerSegmentationDashboard() {
                 Loading...
               </TableCell>
             </TableRow>
-          ) : playerSegments.length === 0 ? (
+          ) : currentPageSegments.length === 0 ? (
             <TableRow>
               <TableCell colSpan={5} className='text-center'>
                 No data available
               </TableCell>
             </TableRow>
           ) : (
-            playerSegments.map((segment) => (
+            currentPageSegments.map((segment) => (
               <TableRow key={segment.player}>
                 <TableCell>{segment.player}</TableCell>
                 <TableCell>{segment.segment}</TableCell>
@@ -270,7 +282,7 @@ export default function PlayerSegmentationDashboard() {
               isActive={currentPage !== 1}
             />
           </PaginationItem>
-          {[...Array(totalPages)].map((_, i) => (
+          {[...Array(memoizedTotalPages)].map((_, i) => (
             <PaginationItem key={i}>
               <PaginationLink
                 onClick={() => handlePageChange(i + 1)}
@@ -283,9 +295,10 @@ export default function PlayerSegmentationDashboard() {
           <PaginationItem>
             <PaginationNext
               onClick={() =>
-                currentPage < totalPages && handlePageChange(currentPage + 1)
+                currentPage < memoizedTotalPages &&
+                handlePageChange(currentPage + 1)
               }
-              isActive={currentPage !== totalPages}
+              isActive={currentPage !== memoizedTotalPages}
             />
           </PaginationItem>
         </PaginationContent>

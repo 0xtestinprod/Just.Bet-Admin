@@ -5,9 +5,13 @@ import RewardsOverview from './components/rewards-overview';
 import ClaimAnalytics from './components/claim-analytics';
 import * as Referral from '@/models/referral';
 
-export default async function RewardsStatisticsDashboard() {
-  const rewardsAnalytics = await Referral.getRewardsAnalytics();
-  const claimAnalytics = await Referral.getClaimAnalytics();
+export default async function RewardsStatisticsDashboard({
+  authToken
+}: {
+  authToken?: string;
+}) {
+  const rewardsAnalytics = await Referral.getRewardsAnalytics(authToken);
+  const claimAnalytics = await Referral.getClaimAnalytics(authToken);
 
   return (
     <div className='flex w-full flex-col gap-4'>

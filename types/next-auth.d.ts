@@ -8,7 +8,9 @@ declare module 'next-auth' {
       name?: string;
       role?: string;
       token?: string;
+      // Add any other user properties you expect
     } & DefaultSession['user'];
+    expires: string;
   }
 
   interface User {
@@ -17,6 +19,7 @@ declare module 'next-auth' {
     name?: string;
     role?: string;
     token?: string;
+    // Add any other user properties you expect
   }
 }
 
@@ -27,7 +30,9 @@ declare module 'next-auth/jwt' {
       email: string;
       name?: string;
       role?: string;
-      token?: string;
     };
+    token: string;
+    refreshToken: string;
+    expiresAt: number;
   }
 }

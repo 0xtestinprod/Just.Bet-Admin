@@ -35,6 +35,32 @@ export function PlayerCombobox({
   setSelectedPlayer
 }: PlayerComboboxProps) {
   const [open, setOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  const filteredPlayers = React.useMemo(() => {
+    if (!searchQuery) return players;
+    const query = searchQuery.toLowerCase();
+    return players.filter((player) =>
+      player.address.toLowerCase().includes(query)
+    );
+  }, [players, searchQuery]);
+
+  const selectedPlayerDetails = React.useMemo(
+    () => players.find((player) => player.address === selectedPlayer),
+    [players, selectedPlayer]
+  );
+
+  const handleSelect = React.useCallback(
+    (currentValue: string) => {
+      setSelectedPlayer(currentValue === selectedPlayer ? '' : currentValue);
+      setOpen(false);
+    },
+    [selectedPlayer, setSelectedPlayer]
+  );
+
+  const handleSearch = React.useCallback((value: string) => {
+    setSearchQuery(value);
+  }, []);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -45,29 +71,25 @@ export function PlayerCombobox({
           aria-expanded={open}
           className='w-[400px] justify-between'
         >
-          {selectedPlayer
-            ? players.find((player) => player.address === selectedPlayer)
-                ?.address
-            : 'Select player...'}
+          {selectedPlayerDetails?.address ?? 'Select player...'}
           <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
         </Button>
       </PopoverTrigger>
       <PopoverContent className='w-[400px] p-0'>
         <Command>
-          <CommandInput placeholder='Search player address...' />
+          <CommandInput
+            placeholder='Search player address...'
+            value={searchQuery}
+            onValueChange={handleSearch}
+          />
           <CommandList>
             <CommandEmpty>No player found.</CommandEmpty>
             <CommandGroup>
-              {players.map((player) => (
+              {filteredPlayers.map((player) => (
                 <CommandItem
                   key={player.id}
                   value={player.address}
-                  onSelect={(currentValue) => {
-                    setSelectedPlayer(
-                      currentValue === selectedPlayer ? '' : currentValue
-                    );
-                    setOpen(false);
-                  }}
+                  onSelect={handleSelect}
                 >
                   <Check
                     className={cn(

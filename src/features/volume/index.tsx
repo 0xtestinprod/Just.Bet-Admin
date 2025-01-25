@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
@@ -10,23 +10,32 @@ import { GameStatsTable } from './components/game-stats-table';
 import { GameVolumeChart } from './components/game-volume-chart';
 import * as Volume from '@/models/volume';
 
-export default function VolumeStatsDashboard() {
+export default function VolumeStatsDashboard({
+  authToken
+}: {
+  authToken?: string;
+}) {
   const [date, setDate] = useState<DateRange | undefined>();
 
-  const timeFrom = date?.from
-    ? Math.floor(date.from.getTime() / 1000)
-    : undefined;
-  const timeTo = date?.to ? Math.floor(date.to.getTime() / 1000) : undefined;
+  const timeRange = useMemo(
+    () => ({
+      timeFrom: date?.from ? Math.floor(date.from.getTime() / 1000) : undefined,
+      timeTo: date?.to ? Math.floor(date.to.getTime() / 1000) : undefined
+    }),
+    [date]
+  );
 
-  const { data: volumeStats, loading: volumeLoading } =
-    Volume.useGetVolumeStats(timeFrom, timeTo);
+  const { data: volumeStats } = Volume.useGetVolumeStats(
+    timeRange.timeFrom,
+    timeRange.timeTo,
+    authToken
+  );
 
-  const { data: hourlyData, loading: hourlyLoading } =
-    Volume.useGetHourlyVolumeDistribution(timeFrom, timeTo);
-
-  if (volumeLoading || hourlyLoading) {
-    return null;
-  }
+  const { data: hourlyData } = Volume.useGetHourlyVolumeDistribution(
+    timeRange.timeFrom,
+    timeRange.timeTo,
+    authToken
+  );
 
   return (
     <div className='container mx-auto py-10'>

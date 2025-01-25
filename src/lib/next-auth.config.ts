@@ -32,6 +32,7 @@ export const authConfig = {
               }
             }
           );
+
           return res.data;
         } catch (err) {
           const error = err as AxiosError;
@@ -76,6 +77,7 @@ export const authConfig = {
             }
           }
         );
+
         const newTokenData = {
           expiresAt: response.data.tokenExpires,
           token: response.data.token,
@@ -94,12 +96,11 @@ export const authConfig = {
         return null;
       }
       session.expires = expiresAtDate.toString();
-      console.log('session', session);
 
       return session;
     }
   },
   pages: {
-    signIn: '/auth'
+    signIn: '/'
   }
 };
