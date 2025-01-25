@@ -37,6 +37,7 @@ import {
   Legend
 } from 'chart.js';
 import { ArrowUpDown, Search } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 
 // Register ChartJS components
 ChartJS.register(
@@ -69,6 +70,9 @@ interface GameData {
 }
 
 export function RevenueStats() {
+  const session = useSession();
+  console.log('session', session);
+
   const [sortConfig, setSortConfig] = useState<{
     key: keyof GameData;
     direction: 'asc' | 'desc';

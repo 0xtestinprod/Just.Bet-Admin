@@ -75,10 +75,12 @@ const getDateKey = (date: Date, timeRange: TimeRange['value']): string => {
 
 interface PlayerDashboardProps {
   initialPlayers: string[];
+  authToken?: string;
 }
 
 export default function PlayerDashboard({
-  initialPlayers
+  initialPlayers,
+  authToken
 }: PlayerDashboardProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<string>(
     initialPlayers[0] ?? ''
@@ -104,7 +106,11 @@ export default function PlayerDashboard({
   );
 
   const { data: dashboardData, error } =
-    PlayerBehavior.useGetPlayerBehaviorDashboard(queryInput);
+    PlayerBehavior.useGetPlayerBehaviorDashboard(
+      queryInput,
+      [selectedPlayer, timeRange.timeFrom, timeRange.timeTo],
+      authToken
+    );
 
   const playerGrowthData = useMemo(() => {
     if (!dashboardData?.financial) return [];
@@ -160,10 +166,6 @@ export default function PlayerDashboard({
   const handleSortOrderToggle = useCallback(() => {
     setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   }, []);
-
-  if (error) {
-    throw error;
-  }
 
   return (
     <div className='flex w-full flex-col gap-4'>

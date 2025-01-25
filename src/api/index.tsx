@@ -2,10 +2,14 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
-import { axiosInstance } from '@/lib/axios';
-import React from 'react';
 import { AxiosInstance } from 'axios';
+import React from 'react';
+import { axiosInstance } from '@/lib/axios';
 import { getSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
+import { createServerApiClient } from './server-api-client';
+import { useAuthenticatedApiClient } from './clientside-api-client';
+import { getServerSession, Session } from 'next-auth';
 
 //#region utils
 type UseQueryHookResult<ResultT> = {
@@ -415,51 +419,89 @@ export interface UnclaimedReferralResponse {
 
 //#region Api Client
 export class ApiClient {
+  private basePath: string;
+  private headers: any;
   private client: AxiosInstance;
 
-  constructor() {
+  constructor(basePath = '/api', token?: string) {
+    const base_url = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+    this.basePath = `${base_url}${basePath}`;
+
     this.client = axiosInstance;
+
+    if (token) {
+      this.setAuthToken(token);
+    }
+  }
+
+  setAuthToken(token: string) {
+    this.headers = {
+      ...this.headers,
+      Authorization: `Bearer ${token}`
+    };
+  }
+
+  setBasePath(basePath: string) {
+    this.basePath = basePath;
+  }
+
+  getBasePath() {
+    if (!this.basePath) throw new Error('ApiClient is not configured');
+    return this.basePath;
+  }
+
+  setHeaders(headers: any) {
+    this.headers = headers;
+  }
+
+  getHeaders() {
+    return this.headers || {};
   }
 
   protected async post<T>(path: string, data: any): Promise<ApiResponse<T>> {
-    const response = await this.client.post(path, data);
+    const response = await this.client.post(path, data, {
+      headers: {
+        ...this.getHeaders()
+      }
+    });
     return response.data;
   }
 
   protected async get<T>(path: string, params?: any): Promise<ApiResponse<T>> {
-    try {
-      const response = await this.client.get(path, {
-        params
-      });
-      return response.data;
-    } catch (error: any) {
-      // Log the error for debugging
-      console.error('API Error:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data
-      });
-
-      // Rethrow the error to be handled by the error boundary
-      throw new Error(error.response?.data?.message || error.message);
-    }
+    const response = await this.client.get(path, {
+      params,
+      headers: {
+        ...this.getHeaders()
+      }
+    });
+    return response.data;
   }
 
   protected async delete<T>(path: string): Promise<ApiResponse<T>> {
-    const response = await this.client.delete(path);
+    const response = await this.client.delete(path, {
+      headers: {
+        ...this.getHeaders()
+      }
+    });
     return response.data;
   }
 
   //#region Player Behavior Dashboard endpoints
   async getPlayerBehaviorDashboard(
-    input: PlayerBehaviorInput
+    input: PlayerBehaviorInput,
+    token?: string
   ): Promise<DashboardStatisticsResponse> {
     try {
-      const response = await this.get<DashboardStatisticsResponse>(
+      const response = await this.client.get(
         `games/stats/player/${input.address}`,
         {
-          timeFrom: 633201795,
-          timeTo: 1737739395
+          params: {
+            timeFrom: input.timeFrom,
+            timeTo: input.timeTo
+          },
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
         }
       );
 
@@ -626,12 +668,11 @@ export class ApiClient {
   async getPlayerSegments(
     params: PlayerSegmentsInput
   ): Promise<PlayerSegmentOutput[]> {
-    console.log('params', params);
     const response = await this.get<PlayerSegmentOutput[]>(
       'player-segmentation/segments',
       params
     );
-    console.log('response', response);
+
     return response.data;
   }
   //#endregion
@@ -688,17 +729,20 @@ const defaultApiClient = new ApiClient();
 export async function getPlayerBehaviorDashboard(
   input: PlayerBehaviorInput
 ): Promise<DashboardStatisticsResponse> {
-  return defaultApiClient.getPlayerBehaviorDashboard(input);
+  const apiClient = await createServerApiClient();
+  return apiClient.getPlayerBehaviorDashboard(input);
 }
 //#endregion
 
 // #region Player Behavior Dashboard Hooks
 export function useGetPlayerBehaviorDashboard(
   input: PlayerBehaviorInput,
-  dependencies: any[] = []
+  dependencies: any[] = [],
+  token?: string
 ): UseQueryHookResult<DashboardStatisticsResponse> {
+  const apiClient = useAuthenticatedApiClient();
   return useQuery(
-    () => defaultApiClient.getPlayerBehaviorDashboard(input),
+    () => apiClient.getPlayerBehaviorDashboard(input, token),
     dependencies
   );
 }
@@ -788,7 +832,8 @@ export async function getAllPlayers(): Promise<string[]> {
 
 // #region Player Hooks
 export function useGetAllPlayers(): UseQueryHookResult<string[]> {
-  return useQuery(() => defaultApiClient.getAllPlayers());
+  const apiClient = useAuthenticatedApiClient();
+  return useQuery(() => apiClient.getAllPlayers());
 }
 //#endregion
 
