@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
@@ -13,18 +13,21 @@ import * as Volume from '@/models/volume';
 export default function VolumeStatsDashboard() {
   const [date, setDate] = useState<DateRange | undefined>();
 
-  const timeFrom = date?.from
-    ? Math.floor(date.from.getTime() / 1000)
-    : undefined;
-  const timeTo = date?.to ? Math.floor(date.to.getTime() / 1000) : undefined;
+  const timeRange = useMemo(
+    () => ({
+      timeFrom: date?.from ? Math.floor(date.from.getTime() / 1000) : undefined,
+      timeTo: date?.to ? Math.floor(date.to.getTime() / 1000) : undefined
+    }),
+    [date]
+  );
 
   const { data: volumeStats, error } = Volume.useGetVolumeStats(
-    timeFrom,
-    timeTo
+    timeRange.timeFrom,
+    timeRange.timeTo
   );
 
   const { data: hourlyData, error: hourlyError } =
-    Volume.useGetHourlyVolumeDistribution(timeFrom, timeTo);
+    Volume.useGetHourlyVolumeDistribution(timeRange.timeFrom, timeRange.timeTo);
 
   if (error || hourlyError) {
     throw error || hourlyError;

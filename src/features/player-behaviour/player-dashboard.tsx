@@ -1,8 +1,7 @@
 'use client';
 
 import * as PlayerBehavior from '@/models/player-behavior';
-import React, { useState, useEffect, useMemo } from 'react';
-
+import React, { useState, useCallback, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -15,8 +14,6 @@ import {
   Repeat
 } from 'lucide-react';
 import { PlayerCombobox } from './components/player-combox';
-import { DashboardStatisticsResponse } from '@/models/player-behavior';
-import { ApiResponse } from '@/api';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -33,6 +30,7 @@ import {
   Tooltip,
   ResponsiveContainer
 } from 'recharts';
+import { cn } from '@/lib/utils';
 
 export interface TimeRange {
   label: string;
@@ -43,23 +41,35 @@ const timeRanges: TimeRange[] = [
   { label: 'Last 24 Hours', value: 'day' },
   { label: 'Last Week', value: 'week' },
   { label: 'Last Month', value: 'month' }
-];
+] as const;
+
+const ONE_DAY = 24 * 60 * 60;
 
 const getTimeRange = (
   range: TimeRange['value']
 ): { timeFrom: number; timeTo: number } => {
-  const now = Math.floor(Date.now() / 1000); // Convert to seconds
-  const oneDay = 24 * 60 * 60; // seconds in a day
+  const now = Math.floor(Date.now() / 1000);
 
   switch (range) {
     case 'day':
-      return { timeFrom: now - oneDay, timeTo: now };
+      return { timeFrom: now - ONE_DAY, timeTo: now };
     case 'week':
-      return { timeFrom: now - 7 * oneDay, timeTo: now };
+      return { timeFrom: now - 7 * ONE_DAY, timeTo: now };
     case 'month':
-      return { timeFrom: now - 30 * oneDay, timeTo: now };
+      return { timeFrom: now - 30 * ONE_DAY, timeTo: now };
     default:
-      return { timeFrom: now - oneDay, timeTo: now };
+      return { timeFrom: now - ONE_DAY, timeTo: now };
+  }
+};
+
+const getDateKey = (date: Date, timeRange: TimeRange['value']): string => {
+  switch (timeRange) {
+    case 'day':
+      return date.getHours().toString().padStart(2, '0') + ':00';
+    case 'week':
+      return date.toLocaleDateString('en-US', { weekday: 'short' });
+    case 'month':
+      return `${date.getDate()} ${date.toLocaleDateString('en-US', { month: 'short' })}`;
   }
 };
 
@@ -71,85 +81,45 @@ export default function PlayerDashboard({
   initialPlayers
 }: PlayerDashboardProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<string>(
-    initialPlayers[0]
+    initialPlayers[0] ?? ''
   );
   const [selectedTimeRange, setSelectedTimeRange] =
     useState<TimeRange['value']>('day');
-
-  // Keep track of the last successful data
-  const [stableData, setStableData] =
-    React.useState<DashboardStatisticsResponse | null>(null);
-
   const [searchAddress, setSearchAddress] = useState('');
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('asc');
 
-  useEffect(() => {
-    if (initialPlayers && initialPlayers.length > 0) {
-      setSelectedPlayer(initialPlayers[0]);
-    }
-  }, [initialPlayers]);
-
-  const { timeFrom, timeTo } = getTimeRange(selectedTimeRange);
+  const timeRange = useMemo(
+    () => getTimeRange(selectedTimeRange),
+    [selectedTimeRange]
+  );
 
   const queryInput = useMemo(
     () => ({
       address: selectedPlayer,
-      timeFrom,
-      timeTo
+      timeFrom: timeRange.timeFrom,
+      timeTo: timeRange.timeTo
     }),
-    [selectedPlayer, timeFrom, timeTo]
+    [selectedPlayer, timeRange]
   );
 
   const { data: dashboardData, error } =
-    PlayerBehavior.useGetPlayerBehaviorDashboard(queryInput, [
-      selectedPlayer,
-      timeFrom,
-      timeTo
-    ]);
+    PlayerBehavior.useGetPlayerBehaviorDashboard(queryInput);
 
-  // Update stable data when we get new data
-  React.useEffect(() => {
-    if (dashboardData) {
-      setStableData(dashboardData);
-    }
-  }, [dashboardData]);
-
-  // Use stableData instead of dashboardData in your render
-  const data = (stableData as ApiResponse<DashboardStatisticsResponse> | null)
-    ?.data;
-
-  const calculatePlayerGrowth = (data: DashboardStatisticsResponse) => {
-    if (!data?.financial) return [];
+  const playerGrowthData = useMemo(() => {
+    if (!dashboardData?.financial) return [];
 
     const transactions = [
-      ...(data.financial.deposits ?? []),
-      ...(data.financial.withdrawals ?? [])
+      ...(dashboardData.financial.deposits ?? []),
+      ...(dashboardData.financial.withdrawals ?? [])
     ].sort((a, b) => a.timestamp - b.timestamp);
 
-    // Group transactions based on selected time range
     const groups = new Map<string, number>();
     let total = 0;
 
     transactions.forEach((tx) => {
       const date = new Date(tx.timestamp * 1000);
-      let key = '';
-
-      switch (selectedTimeRange) {
-        case 'day':
-          // Group by hour for last 24 hours
-          key = date.getHours().toString().padStart(2, '0') + ':00';
-          break;
-        case 'week':
-          // Group by day for last week
-          key = date.toLocaleDateString('en-US', { weekday: 'short' });
-          break;
-        case 'month':
-          // Group by day and month for last month
-          key = `${date.getDate()} ${date.toLocaleDateString('en-US', { month: 'short' })}`;
-          break;
-      }
-
+      const key = getDateKey(date, selectedTimeRange);
       total += tx.amountUsd;
       groups.set(key, total);
     });
@@ -158,7 +128,42 @@ export default function PlayerDashboard({
       label,
       value
     }));
-  };
+  }, [dashboardData?.financial, selectedTimeRange]);
+
+  // Memoize filtered transactions
+  const filteredTransactions = useMemo(() => {
+    if (!dashboardData?.financial) return { deposits: [], withdrawals: [] };
+
+    const searchLower = searchAddress.toLowerCase();
+    const sortFn = (a: any, b: any) => {
+      const aValue = sortBy === 'date' ? a.timestamp : a.amountUsd;
+      const bValue = sortBy === 'date' ? b.timestamp : b.amountUsd;
+      return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+    };
+
+    return {
+      deposits:
+        dashboardData.financial.deposits
+          ?.filter((d) => d.token.toLowerCase().includes(searchLower))
+          ?.sort(sortFn) ?? [],
+      withdrawals:
+        dashboardData.financial.withdrawals
+          ?.filter((w) => w.token.toLowerCase().includes(searchLower))
+          ?.sort(sortFn) ?? []
+    };
+  }, [dashboardData?.financial, searchAddress, sortBy, sortOrder]);
+
+  const handleTimeRangeChange = useCallback((value: string) => {
+    setSelectedTimeRange(value as TimeRange['value']);
+  }, []);
+
+  const handleSortOrderToggle = useCallback(() => {
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  }, []);
+
+  if (error) {
+    throw error;
+  }
 
   return (
     <div className='flex w-full flex-col gap-4'>
@@ -178,9 +183,7 @@ export default function PlayerDashboard({
             <Tabs
               value={selectedTimeRange}
               className='w-full sm:w-auto'
-              onValueChange={(value) =>
-                setSelectedTimeRange(value as TimeRange['value'])
-              }
+              onValueChange={handleTimeRangeChange}
             >
               <TabsList>
                 {timeRanges.map((range) => (
@@ -203,77 +206,37 @@ export default function PlayerDashboard({
 
           <TabsContent value='overview' className='space-y-4'>
             <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    Total Games
-                  </CardTitle>
-                  <Gamepad2 className='h-4 w-4 text-muted-foreground' />
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-bold'>
-                    {data?.overview?.totalGamesPlayed ?? 0}
-                  </div>
-                  <p className='text-xs text-muted-foreground'>
-                    Current streak: {data?.overview?.currentStreak ?? -1} games
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    Win/Loss Ratio
-                  </CardTitle>
-                  <ArrowUp className='h-4 w-4 text-green-500' />
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-bold'>
-                    {data?.overview?.winLossRatio?.toFixed(2) ?? '0.00'}
-                  </div>
-                  <p className='text-xs text-muted-foreground'>
-                    {((data?.overview?.winLossRatio ?? 0) * 100).toFixed(0)}%
-                    win rate
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    Lifetime Value
-                  </CardTitle>
-                  <DollarSign className='h-4 w-4 text-muted-foreground' />
-                </CardHeader>
-                <CardContent>
-                  <div
-                    className={`text-2xl font-bold ${
-                      (data?.overview?.lifetimeValue ?? 0) < 0
-                        ? 'text-red-500'
-                        : ''
-                    }`}
-                  >
-                    ${data?.overview?.lifetimeValue?.toFixed(2) ?? '0.00'}
-                  </div>
-                  <p className='text-xs text-muted-foreground'>
-                    {data?.overview?.uniqueTokensUsed} unique tokens used
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    Avg Bet Amount
-                  </CardTitle>
-                  <Coins className='h-4 w-4 text-muted-foreground' />
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-bold'>
-                    ${data?.betting?.averageBetAmountUsd?.toFixed(2) ?? '0.00'}
-                  </div>
-                  <p className='text-xs text-muted-foreground'>
-                    Per game: ${data?.betting?.betPerGame?.toFixed(2) ?? '0.00'}
-                  </p>
-                </CardContent>
-              </Card>
+              <StatCard
+                title='Total Games'
+                value={dashboardData?.overview?.totalGamesPlayed ?? 0}
+                subValue={`Current streak: ${dashboardData?.overview?.currentStreak ?? -1} games`}
+                icon={Gamepad2}
+              />
+              <StatCard
+                title='Win/Loss Ratio'
+                value={
+                  dashboardData?.overview?.winLossRatio?.toFixed(2) ?? '0.00'
+                }
+                subValue={`${((dashboardData?.overview?.winLossRatio ?? 0) * 100).toFixed(0)}% win rate`}
+                icon={ArrowUp}
+              />
+              <StatCard
+                title='Lifetime Value'
+                value={`$${dashboardData?.overview?.lifetimeValue?.toFixed(2) ?? '0.00'}`}
+                subValue={`${dashboardData?.overview?.uniqueTokensUsed} unique tokens used`}
+                icon={DollarSign}
+                valueClassName={
+                  (dashboardData?.overview?.lifetimeValue ?? 0) < 0
+                    ? 'text-red-500'
+                    : ''
+                }
+              />
+              <StatCard
+                title='Avg Bet Amount'
+                value={`$${dashboardData?.betting?.averageBetAmountUsd?.toFixed(2) ?? '0.00'}`}
+                subValue={`Per game: $${dashboardData?.betting?.betPerGame?.toFixed(2) ?? '0.00'}`}
+                icon={Coins}
+              />
             </div>
           </TabsContent>
 
@@ -288,7 +251,7 @@ export default function PlayerDashboard({
                 </CardHeader>
                 <CardContent>
                   <div className='text-2xl font-bold'>
-                    {data?.session?.totalSessions ?? 0}
+                    {dashboardData?.session?.totalSessions ?? 0}
                   </div>
                 </CardContent>
               </Card>
@@ -302,14 +265,17 @@ export default function PlayerDashboard({
                 <CardContent>
                   <div className='text-2xl font-bold'>
                     {Math.floor(
-                      (data?.session?.averageSessionDuration ?? 0) / 3600
+                      (dashboardData?.session?.averageSessionDuration ?? 0) /
+                        3600
                     )}
                     h
                   </div>
                   <p className='text-xs text-muted-foreground'>
                     Total:{' '}
-                    {Math.floor((data?.session?.totalPlayTime ?? 0) / 3600)}h
-                    played
+                    {Math.floor(
+                      (dashboardData?.session?.totalPlayTime ?? 0) / 3600
+                    )}
+                    h played
                   </p>
                 </CardContent>
               </Card>
@@ -322,7 +288,8 @@ export default function PlayerDashboard({
                 </CardHeader>
                 <CardContent>
                   <div className='text-2xl font-bold'>
-                    {data?.session?.averageBettingStreak?.toFixed(1) ?? '0.0'}
+                    {dashboardData?.session?.averageBettingStreak?.toFixed(1) ??
+                      '0.0'}
                   </div>
                   <p className='text-xs text-muted-foreground'>
                     Average streak length
@@ -353,9 +320,7 @@ export default function PlayerDashboard({
                   </Select>
                   <div
                     className='flex cursor-pointer items-center justify-center'
-                    onClick={() =>
-                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
-                    }
+                    onClick={handleSortOrderToggle}
                   >
                     {sortOrder === 'asc' ? (
                       <ArrowUp className='h-4 w-4' />
@@ -372,46 +337,29 @@ export default function PlayerDashboard({
                   </CardHeader>
                   <CardContent>
                     <div className='scrollbar-thin max-h-[200px] space-y-2 overflow-y-auto'>
-                      {data?.financial?.deposits
-                        ?.filter((deposit) =>
-                          deposit.token
-                            .toLowerCase()
-                            .includes(searchAddress.toLowerCase())
-                        )
-                        ?.sort((a, b) => {
-                          if (sortBy === 'date') {
-                            return sortOrder === 'asc'
-                              ? a.timestamp - b.timestamp
-                              : b.timestamp - a.timestamp;
-                          } else {
-                            return sortOrder === 'asc'
-                              ? a.amountUsd - b.amountUsd
-                              : b.amountUsd - a.amountUsd;
-                          }
-                        })
-                        ?.map((deposit, i) => (
-                          <div
-                            key={i}
-                            className='flex items-center justify-between py-2'
-                          >
-                            <div className='space-y-1'>
-                              <p className='text-sm font-medium leading-none'>
-                                {deposit?.token ?? 'Unknown'}
-                              </p>
-                              <p className='text-sm text-muted-foreground'>
-                                {new Date(
-                                  deposit?.timestamp ?? 0
-                                ).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <div className='flex items-center gap-2'>
-                              <ArrowUp className='h-4 w-4 text-green-500' />
-                              <span className='font-medium'>
-                                ${deposit?.amountUsd?.toFixed(2) ?? '0.00'}
-                              </span>
-                            </div>
+                      {filteredTransactions.deposits.map((deposit, i) => (
+                        <div
+                          key={i}
+                          className='flex items-center justify-between py-2'
+                        >
+                          <div className='space-y-1'>
+                            <p className='text-sm font-medium leading-none'>
+                              {deposit?.token ?? 'Unknown'}
+                            </p>
+                            <p className='text-sm text-muted-foreground'>
+                              {new Date(
+                                deposit?.timestamp ?? 0
+                              ).toLocaleDateString()}
+                            </p>
                           </div>
-                        )) ?? []}
+                          <div className='flex items-center gap-2'>
+                            <ArrowUp className='h-4 w-4 text-green-500' />
+                            <span className='font-medium'>
+                              ${deposit?.amountUsd?.toFixed(2) ?? '0.00'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
@@ -421,46 +369,29 @@ export default function PlayerDashboard({
                   </CardHeader>
                   <CardContent>
                     <div className='scrollbar-thin max-h-[200px] space-y-2 overflow-y-auto'>
-                      {data?.financial?.withdrawals
-                        ?.filter((withdrawal) =>
-                          withdrawal.token
-                            .toLowerCase()
-                            .includes(searchAddress.toLowerCase())
-                        )
-                        ?.sort((a, b) => {
-                          if (sortBy === 'date') {
-                            return sortOrder === 'asc'
-                              ? a.timestamp - b.timestamp
-                              : b.timestamp - a.timestamp;
-                          } else {
-                            return sortOrder === 'asc'
-                              ? a.amountUsd - b.amountUsd
-                              : b.amountUsd - a.amountUsd;
-                          }
-                        })
-                        ?.map((withdrawal, i) => (
-                          <div
-                            key={i}
-                            className='flex items-center justify-between py-2'
-                          >
-                            <div className='space-y-1'>
-                              <p className='text-sm font-medium leading-none'>
-                                {withdrawal?.token ?? 'Unknown'}
-                              </p>
-                              <p className='text-sm text-muted-foreground'>
-                                {new Date(
-                                  withdrawal?.timestamp ?? 0
-                                ).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <div className='flex items-center gap-2'>
-                              <ArrowDown className='h-4 w-4 text-red-500' />
-                              <span className='font-medium'>
-                                ${withdrawal?.amount?.toFixed(2) ?? '0.00'}
-                              </span>
-                            </div>
+                      {filteredTransactions.withdrawals.map((withdrawal, i) => (
+                        <div
+                          key={i}
+                          className='flex items-center justify-between py-2'
+                        >
+                          <div className='space-y-1'>
+                            <p className='text-sm font-medium leading-none'>
+                              {withdrawal?.token ?? 'Unknown'}
+                            </p>
+                            <p className='text-sm text-muted-foreground'>
+                              {new Date(
+                                withdrawal?.timestamp ?? 0
+                              ).toLocaleDateString()}
+                            </p>
                           </div>
-                        )) ?? []}
+                          <div className='flex items-center gap-2'>
+                            <ArrowDown className='h-4 w-4 text-red-500' />
+                            <span className='font-medium'>
+                              ${withdrawal?.amount?.toFixed(2) ?? '0.00'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
@@ -479,13 +410,13 @@ export default function PlayerDashboard({
                     <div className='flex items-center justify-between'>
                       <span className='text-sm'>Max Win Streak</span>
                       <span className='font-medium text-green-500'>
-                        {data?.betting?.maxWinStreak ?? 0} games
+                        {dashboardData?.betting?.maxWinStreak ?? 0} games
                       </span>
                     </div>
                     <div className='flex items-center justify-between'>
                       <span className='text-sm'>Max Lose Streak</span>
                       <span className='font-medium text-red-500'>
-                        {data?.betting?.maxLoseStreak ?? 0} games
+                        {dashboardData?.betting?.maxLoseStreak ?? 0} games
                       </span>
                     </div>
                   </div>
@@ -501,14 +432,17 @@ export default function PlayerDashboard({
                       <span className='text-sm'>Average Bet (USD)</span>
                       <span className='font-medium'>
                         $
-                        {data?.betting?.averageBetAmountUsd?.toFixed(2) ??
-                          '0.00'}
+                        {dashboardData?.betting?.averageBetAmountUsd?.toFixed(
+                          2
+                        ) ?? '0.00'}
                       </span>
                     </div>
                     <div className='flex items-center justify-between'>
                       <span className='text-sm'>Bet Per Game</span>
                       <span className='font-medium'>
-                        ${data?.betting?.betPerGame?.toFixed(2) ?? '0.00'}
+                        $
+                        {dashboardData?.betting?.betPerGame?.toFixed(2) ??
+                          '0.00'}
                       </span>
                     </div>
                   </div>
@@ -531,9 +465,7 @@ export default function PlayerDashboard({
             <div className='h-[300px] w-full'>
               <ResponsiveContainer width='100%' height='100%'>
                 <LineChart
-                  data={calculatePlayerGrowth(
-                    data as DashboardStatisticsResponse
-                  )}
+                  data={playerGrowthData}
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
                   <XAxis
@@ -566,9 +498,9 @@ export default function PlayerDashboard({
                   <Line
                     type='monotone'
                     dataKey='value'
-                    stroke='#4ade80'
+                    stroke='#b27aff'
                     strokeWidth={2}
-                    dot={{ fill: '#4ade80', r: 4 }}
+                    dot={{ fill: '#b27aff', r: 4 }}
                     activeDot={{ r: 6 }}
                     name='Balance'
                   />
@@ -581,3 +513,34 @@ export default function PlayerDashboard({
     </div>
   );
 }
+
+const StatCard = React.memo(
+  ({
+    title,
+    value,
+    subValue,
+    icon: Icon,
+    valueClassName = ''
+  }: {
+    title: string;
+    value: string | number;
+    subValue?: string;
+    icon: React.ElementType;
+    valueClassName?: string;
+  }) => (
+    <Card>
+      <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+        <CardTitle className='text-sm font-medium'>{title}</CardTitle>
+        <Icon className='h-4 w-4 text-muted-foreground' />
+      </CardHeader>
+      <CardContent>
+        <div className={cn('text-2xl font-bold', valueClassName)}>{value}</div>
+        {subValue && (
+          <p className='text-xs text-muted-foreground'>{subValue}</p>
+        )}
+      </CardContent>
+    </Card>
+  )
+);
+
+StatCard.displayName = 'StatCard';

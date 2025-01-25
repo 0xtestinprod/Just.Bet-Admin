@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowUpDown, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface TokenPerformanceTableProps {
@@ -22,6 +22,8 @@ interface TokenPerformanceTableProps {
 }
 
 type SortKey = keyof Token;
+
+const ITEMS_PER_PAGE = 10;
 
 export function TokenPerformanceTable({
   data,
@@ -38,40 +40,49 @@ export function TokenPerformanceTable({
     direction: 'asc'
   });
 
-  const itemsPerPage = 10;
+  const sortedData = useMemo(() => {
+    if (!data?.length) return [];
+    return [...data].sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+      const sortMultiplier = sortConfig.direction === 'asc' ? 1 : -1;
+      return aValue < bValue ? -sortMultiplier : sortMultiplier;
+    });
+  }, [data, sortConfig]);
 
-  // Sorting logic
-  const sortedData = [...(data || [])].sort((a, b) => {
-    if (a[sortConfig.key] < b[sortConfig.key]) {
-      return sortConfig.direction === 'asc' ? -1 : 1;
-    }
-    if (a[sortConfig.key] > b[sortConfig.key]) {
-      return sortConfig.direction === 'asc' ? 1 : -1;
-    }
-    return 0;
-  });
+  const filteredData = useMemo(() => {
+    if (!searchTerm) return sortedData;
+    const searchLower = searchTerm.toLowerCase();
+    return sortedData.filter(
+      (token) =>
+        token.symbol.toLowerCase().includes(searchLower) ||
+        token.address.toLowerCase().includes(searchLower)
+    );
+  }, [sortedData, searchTerm]);
 
-  // Filtering logic
-  const filteredData = sortedData.filter(
-    (token) =>
-      token.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      token.address.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const { paginatedData, totalPages } = useMemo(() => {
+    const total = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginated = filteredData.slice(start, start + ITEMS_PER_PAGE);
+    return { paginatedData: paginated, totalPages: total };
+  }, [filteredData, currentPage]);
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const paginatedData = filteredData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const handleSort = (key: SortKey) => {
+  const handleSort = useCallback((key: SortKey) => {
     setSortConfig((current) => ({
       key,
       direction:
         current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
     }));
-  };
+  }, []);
+
+  const handleSearch = useCallback((value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page on search
+  }, []);
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
 
   if (error) {
     return (
@@ -94,7 +105,7 @@ export function TokenPerformanceTable({
           <Input
             placeholder='Search by symbol or address...'
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             className='max-w-sm'
           />
         </div>
@@ -168,25 +179,21 @@ export function TokenPerformanceTable({
           </Table>
         </div>
 
-        <div className='flex items-center justify-between space-x-2 py-4'>
+        <div className='mt-4 flex items-center justify-between'>
           <Button
             variant='outline'
-            size='sm'
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
           >
             <ChevronLeft className='mr-2 h-4 w-4' />
             Previous
           </Button>
-          <div className='text-sm text-muted-foreground'>
+          <span className='text-sm text-muted-foreground'>
             Page {currentPage} of {totalPages}
-          </div>
+          </span>
           <Button
             variant='outline'
-            size='sm'
-            onClick={() =>
-              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-            }
+            onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
           >
             Next

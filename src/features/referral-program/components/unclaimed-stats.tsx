@@ -78,45 +78,51 @@ export function UnclaimedStats() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-  // Fetch unclaimed referrals data using the API hook
   const {
     data: unclaimedData,
     error,
     loading
   } = Referral.useGetUnclaimedReferrals();
 
-  // Filter and sort data based on search query and current configuration
-  const filteredAndSortedData = useMemo(() => {
+  // First filter the data
+  const filteredData = useMemo(() => {
     if (!unclaimedData?.unclaimedByToken) return [];
+    return unclaimedData.unclaimedByToken.filter((item) =>
+      item.token.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [unclaimedData?.unclaimedByToken, searchQuery]);
 
-    return [...unclaimedData.unclaimedByToken]
-      .filter((item) =>
-        item.token.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-      .sort((a, b) => {
-        if (sortConfig.direction === 'asc') {
-          return a[sortConfig.key] > b[sortConfig.key] ? 1 : -1;
-        }
-        return a[sortConfig.key] < b[sortConfig.key] ? 1 : -1;
-      });
-  }, [unclaimedData?.unclaimedByToken, searchQuery, sortConfig]);
+  // Then sort the filtered data
+  const sortedData = useMemo(() => {
+    return [...filteredData].sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+      const sortMultiplier = sortConfig.direction === 'asc' ? 1 : -1;
+      return aValue > bValue ? sortMultiplier : -sortMultiplier;
+    });
+  }, [filteredData, sortConfig]);
 
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredAndSortedData.length / pageSize);
-  const paginatedData = filteredAndSortedData.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
+  // Finally, paginate the sorted data
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return sortedData.slice(startIndex, endIndex);
+  }, [sortedData, currentPage, pageSize]);
+
+  const totalPages = useMemo(
+    () => Math.ceil(sortedData.length / pageSize),
+    [sortedData.length, pageSize]
   );
 
   // Prepare data for the pie chart
   const chartData = {
-    labels: filteredAndSortedData
+    labels: sortedData
       .map((item) => abbreviateAddress(item.token))
       .slice(0, 10),
     datasets: [
       {
-        data: filteredAndSortedData.map((item) => item.amountUsd).slice(0, 10),
-        backgroundColor: generateColors(filteredAndSortedData.length)
+        data: sortedData.map((item) => item.amountUsd).slice(0, 10),
+        backgroundColor: generateColors(sortedData.length)
       }
     ]
   };
@@ -261,8 +267,8 @@ export function UnclaimedStats() {
           <div className='flex items-center justify-between space-x-2 py-4'>
             <div className='text-sm text-muted-foreground'>
               Showing {(currentPage - 1) * pageSize + 1} to{' '}
-              {Math.min(currentPage * pageSize, filteredAndSortedData.length)}{' '}
-              of {filteredAndSortedData.length} entries
+              {Math.min(currentPage * pageSize, sortedData.length)} of{' '}
+              {sortedData.length} entries
             </div>
             <div className='flex space-x-2'>
               <Button

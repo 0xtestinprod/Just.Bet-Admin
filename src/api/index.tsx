@@ -2,8 +2,10 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
-import axios, { AxiosInstance } from 'axios';
+import { axiosInstance } from '@/lib/axios';
 import React from 'react';
+import { AxiosInstance } from 'axios';
+import { getSession } from 'next-auth/react';
 
 //#region utils
 type UseQueryHookResult<ResultT> = {
@@ -413,66 +415,38 @@ export interface UnclaimedReferralResponse {
 
 //#region Api Client
 export class ApiClient {
-  private basePath: string;
-  private headers: any;
   private client: AxiosInstance;
 
-  constructor(basePath = '/api') {
-    const base_url = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-    this.basePath = `${base_url}${basePath}`;
-
-    this.client = axios.create({
-      baseURL: this.basePath,
-      headers: {
-        'Cache-Control': 'no-cache',
-        Pragma: 'no-cache',
-        Expires: '0'
-      }
-    });
-  }
-
-  setBasePath(basePath: string) {
-    this.basePath = basePath;
-  }
-
-  getBasePath() {
-    if (!this.basePath) throw new Error('ApiClient is not configured');
-    return this.basePath;
-  }
-
-  setHeaders(headers: any) {
-    this.headers = headers;
-  }
-
-  getHeaders() {
-    return this.headers || {};
+  constructor() {
+    this.client = axiosInstance;
   }
 
   protected async post<T>(path: string, data: any): Promise<ApiResponse<T>> {
-    const response = await this.client.post(path, data, {
-      headers: {
-        ...this.getHeaders()
-      }
-    });
+    const response = await this.client.post(path, data);
     return response.data;
   }
 
   protected async get<T>(path: string, params?: any): Promise<ApiResponse<T>> {
-    const response = await this.client.get(path, {
-      params,
-      headers: {
-        ...this.getHeaders()
-      }
-    });
-    return response.data;
+    try {
+      const response = await this.client.get(path, {
+        params
+      });
+      return response.data;
+    } catch (error: any) {
+      // Log the error for debugging
+      console.error('API Error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+
+      // Rethrow the error to be handled by the error boundary
+      throw new Error(error.response?.data?.message || error.message);
+    }
   }
 
   protected async delete<T>(path: string): Promise<ApiResponse<T>> {
-    const response = await this.client.delete(path, {
-      headers: {
-        ...this.getHeaders()
-      }
-    });
+    const response = await this.client.delete(path);
     return response.data;
   }
 
@@ -481,13 +455,11 @@ export class ApiClient {
     input: PlayerBehaviorInput
   ): Promise<DashboardStatisticsResponse> {
     try {
-      const response = await this.client.get(
+      const response = await this.get<DashboardStatisticsResponse>(
         `games/stats/player/${input.address}`,
         {
-          params: {
-            timeFrom: input.timeFrom,
-            timeTo: input.timeTo
-          }
+          timeFrom: 633201795,
+          timeTo: 1737739395
         }
       );
 
@@ -654,11 +626,12 @@ export class ApiClient {
   async getPlayerSegments(
     params: PlayerSegmentsInput
   ): Promise<PlayerSegmentOutput[]> {
+    console.log('params', params);
     const response = await this.get<PlayerSegmentOutput[]>(
       'player-segmentation/segments',
       params
     );
-
+    console.log('response', response);
     return response.data;
   }
   //#endregion

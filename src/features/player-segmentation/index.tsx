@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -34,7 +34,7 @@ import {
   PaginationPrevious
 } from '@/components/ui/pagination';
 
-const ITEMS_PER_PAGE = 10; // Define how many items we want per page
+const ITEMS_PER_PAGE = 10;
 
 export default function PlayerSegmentationDashboard() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
@@ -42,9 +42,6 @@ export default function PlayerSegmentationDashboard() {
   const [highRollerPercentile, setHighRollerPercentile] = useState(80);
   const [lowRollerPercentile, setLowRollerPercentile] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
-  const [playerSegments, setPlayerSegments] = useState<
-    PlayerSegmentation.PlayerSegmentOutput[]
-  >([]);
   const [refetchQueryInput, setRefetchQueryInput] =
     useState<PlayerSegmentation.PlayerSegmentsInput | null>(null);
   const queryInput = useMemo(
@@ -75,6 +72,18 @@ export default function PlayerSegmentationDashboard() {
     return allSegments?.slice(startIndex, endIndex) ?? [];
   }, [allSegments, currentPage]);
 
+  const segmentCounts = useMemo(
+    () =>
+      (allSegments ?? []).reduce(
+        (acc, segment) => {
+          acc[segment.segment] = (acc[segment.segment] || 0) + 1;
+          return acc;
+        },
+        {} as Record<PlayerSegmentType, number>
+      ),
+    [allSegments]
+  );
+
   const handleApplyFilters = () => {
     setRefetchQueryInput(queryInput);
     refetch();
@@ -83,14 +92,6 @@ export default function PlayerSegmentationDashboard() {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
-
-  const segmentCounts = playerSegments.reduce(
-    (acc, segment) => {
-      acc[segment.segment] = (acc[segment.segment] || 0) + 1;
-      return acc;
-    },
-    {} as Record<PlayerSegmentType, number>
-  );
 
   if (error) {
     throw error;
@@ -121,7 +122,7 @@ export default function PlayerSegmentationDashboard() {
                 mode='single'
                 selected={dateFrom}
                 onSelect={(date: Date | undefined) => {
-                  setDateFrom(date);
+                  setDateFrom(date ?? new Date());
                 }}
                 initialFocus
               />
@@ -148,7 +149,7 @@ export default function PlayerSegmentationDashboard() {
                 mode='single'
                 selected={dateTo}
                 onSelect={(date: Date | undefined) => {
-                  setDateTo(date);
+                  setDateTo(date ?? new Date());
                 }}
                 initialFocus
               />
@@ -233,7 +234,7 @@ export default function PlayerSegmentationDashboard() {
                 Loading...
               </TableCell>
             </TableRow>
-          ) : playerSegments.length === 0 ? (
+          ) : currentPageSegments.length === 0 ? (
             <TableRow>
               <TableCell colSpan={5} className='text-center'>
                 No data available
