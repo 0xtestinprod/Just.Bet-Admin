@@ -527,7 +527,10 @@ export class ApiClient {
           : this.getHeaders().Authorization
       }
     });
-    return response.data;
+    if (response.data.data) {
+      return response.data.data;
+    }
+    return [];
   }
 
   async getGamePerformanceByToken(
