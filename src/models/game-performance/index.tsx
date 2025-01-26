@@ -5,9 +5,6 @@ export type GamePerformanceResponse = API.GamePerformanceResponse;
 export {
   getGamePerformance,
   getGamePerformanceByToken,
-  useGetGamePerformance
+  useGetGamePerformance,
+  useGetGamePerformanceByToken
 } from '@/api';
-
-export default {
-  useGetGamePerformanceByToken: API.useGetGamePerformanceByToken
-};

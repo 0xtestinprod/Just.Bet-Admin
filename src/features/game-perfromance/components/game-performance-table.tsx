@@ -12,8 +12,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowUpDown, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { useMemo, useCallback, useState } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface GamePerformanceTableProps {
   data: GamePerformanceResponse[];
@@ -22,8 +22,6 @@ interface GamePerformanceTableProps {
 }
 
 type SortKey = keyof GamePerformanceResponse;
-
-const ITEMS_PER_PAGE = 10;
 
 export function GamePerformanceTable({
   data,
@@ -40,49 +38,67 @@ export function GamePerformanceTable({
     direction: 'asc'
   });
 
-  const sortedData = useMemo(() => {
-    if (!data?.length) return [];
-    return [...data].sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
-      const sortMultiplier = sortConfig.direction === 'asc' ? 1 : -1;
-      return aValue < bValue ? -sortMultiplier : sortMultiplier;
-    });
-  }, [data, sortConfig]);
+  const itemsPerPage = 10;
 
-  const filteredData = useMemo(() => {
-    if (!searchTerm) return sortedData;
-    return sortedData.filter((row) =>
-      row.game.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [sortedData, searchTerm]);
+  const sortedData = [...(data || [])].sort((a, b) => {
+    if (a[sortConfig.key] < b[sortConfig.key]) {
+      return sortConfig.direction === 'asc' ? -1 : 1;
+    }
+    if (a[sortConfig.key] > b[sortConfig.key]) {
+      return sortConfig.direction === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
 
-  const { paginatedData, totalPages } = useMemo(() => {
-    const total = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    const paginated = filteredData.slice(start, start + ITEMS_PER_PAGE);
-    return { paginatedData: paginated, totalPages: total };
-  }, [filteredData, currentPage]);
+  const filteredData = sortedData.filter((row) => {
+    const gameId = row.game.toString();
+    const search = searchTerm.trim();
 
-  const handleSort = useCallback((key: SortKey) => {
+    if (!search) return true;
+
+    if (!isNaN(Number(search))) {
+      return gameId === search;
+    }
+
+    return row.game.toLowerCase().includes(search.toLowerCase());
+  });
+
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handleSort = (key: SortKey) => {
     setSortConfig((current) => ({
       key,
       direction:
         current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
     }));
-  }, []);
+  };
 
-  const handleSearch = useCallback((value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1); // Reset to first page on search
-  }, []);
-
-  const handlePageChange = useCallback((page: number) => {
-    setCurrentPage(page);
-  }, []);
+  const formatNumber = (
+    value: number | null | undefined,
+    isPercentage = false
+  ) => {
+    if (value === null || value === undefined || isNaN(value)) {
+      return 'N/A';
+    }
+    const num = isPercentage ? value * 100 : value;
+    return isPercentage ? `${num.toFixed(2)}%` : `$${num.toFixed(2)}`;
+  };
 
   if (error) {
-    throw error;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className='text-red-500'>Error Loading Data</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>{error.message}</p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -92,7 +108,7 @@ export function GamePerformanceTable({
           <Input
             placeholder='Search games...'
             value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className='max-w-sm'
           />
         </div>
@@ -213,44 +229,46 @@ export function GamePerformanceTable({
                 paginatedData.map((row) => (
                   <TableRow key={row.game}>
                     <TableCell className='text-center font-medium'>
-                      {row.game}
+                      {row.game || 'Unknown'}
                     </TableCell>
                     <TableCell className='text-center'>
-                      {row.frequency}
+                      {row.frequency ?? 'N/A'}
                     </TableCell>
                     <TableCell className='text-center'>
-                      {(row.winsPercentage * 100).toFixed(2)}%
+                      {formatNumber(row.winsPercentage, true)}
                     </TableCell>
                     <TableCell className='text-center'>
-                      ${row.averageBetSize.toFixed(2)}
+                      {formatNumber(row.averageBetSize)}
                     </TableCell>
                     <TableCell className='text-center'>
-                      ${row.revenue.toFixed(2)}
-                    </TableCell>
-                    <TableCell className='text-center'>
-                      <span
-                        className={
-                          row.profit >= 0 ? 'text-green-500' : 'text-red-500'
-                        }
-                      >
-                        ${row.profit.toFixed(2)}
-                      </span>
-                    </TableCell>
-                    <TableCell className='text-center'>
-                      ${row.losses.toFixed(2)}
-                    </TableCell>
-                    <TableCell className='text-center'>
-                      {row.profitLossRatio.toFixed(2)}
+                      {formatNumber(row.revenue)}
                     </TableCell>
                     <TableCell className='text-center'>
                       <span
                         className={
-                          row.profitPercent >= 0
+                          (row.profit || 0) >= 0
                             ? 'text-green-500'
                             : 'text-red-500'
                         }
                       >
-                        {(row.profitPercent * 100).toFixed(2)}%
+                        {formatNumber(row.profit)}
+                      </span>
+                    </TableCell>
+                    <TableCell className='text-center'>
+                      {formatNumber(row.losses)}
+                    </TableCell>
+                    <TableCell className='text-center'>
+                      {row.profitLossRatio?.toFixed(2) ?? 'N/A'}
+                    </TableCell>
+                    <TableCell className='text-center'>
+                      <span
+                        className={
+                          (row.profitPercent || 0) >= 0
+                            ? 'text-green-500'
+                            : 'text-red-500'
+                        }
+                      >
+                        {formatNumber(row.profitPercent, true)}
                       </span>
                     </TableCell>
                   </TableRow>
@@ -260,21 +278,25 @@ export function GamePerformanceTable({
           </Table>
         </div>
 
-        <div className='mt-4 flex items-center justify-between'>
+        <div className='flex items-center justify-between space-x-2 py-4'>
           <Button
             variant='outline'
-            onClick={() => handlePageChange(currentPage - 1)}
+            size='sm'
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
           >
             <ChevronLeft className='mr-2 h-4 w-4' />
             Previous
           </Button>
-          <span className='text-sm text-muted-foreground'>
+          <div className='text-sm text-muted-foreground'>
             Page {currentPage} of {totalPages}
-          </span>
+          </div>
           <Button
             variant='outline'
-            onClick={() => handlePageChange(currentPage + 1)}
+            size='sm'
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
             disabled={currentPage === totalPages}
           >
             Next

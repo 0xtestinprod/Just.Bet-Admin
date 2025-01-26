@@ -5,13 +5,6 @@ import { type NextRequest } from 'next/server';
 export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request });
 
-  // Debug log
-  console.log('Middleware Token:', {
-    hasToken: !!token,
-    userData: token?.userData ? 'exists' : 'missing',
-    path: request.nextUrl.pathname
-  });
-
   const isAuthPage = request.nextUrl.pathname === '/';
 
   if (isAuthPage) {

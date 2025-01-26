@@ -9,8 +9,6 @@ export default async function ReferralProgramDashboard({
 }) {
   const data = await Referral.getReferralStatistics(authToken);
 
-  console.log('data', data);
-
   const formatLargeNumber = (num: number) => {
     if (num >= 1e12) return `${(num / 1e12).toFixed(2)}T`;
     if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
