@@ -168,11 +168,11 @@ export default function PlayerDashboard({
   }, []);
 
   return (
-    <div className='flex w-full flex-col gap-4'>
-      <div className='flex flex-col gap-4'>
-        <div className='flex flex-col justify-between gap-4 sm:flex-row'>
+    <div className='flex w-full flex-col gap-4 overflow-y-auto'>
+      <div className='flex w-full flex-col gap-4'>
+        <div className='flex w-full flex-col justify-between gap-4 sm:flex-row'>
           <h1 className='text-2xl font-bold tracking-tight'>Player Behavior</h1>
-          <div className='flex flex-col gap-4 sm:flex-row'>
+          <div className='flex w-full flex-col gap-4 sm:flex-row'>
             <PlayerCombobox
               players={initialPlayers.map((address) => ({
                 id: address,
@@ -187,7 +187,7 @@ export default function PlayerDashboard({
               className='w-full sm:w-auto'
               onValueChange={handleTimeRangeChange}
             >
-              <TabsList>
+              <TabsList className='w-full sm:w-auto'>
                 {timeRanges.map((range) => (
                   <TabsTrigger key={range.value} value={range.value}>
                     {range.label}

@@ -10,6 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from '@/components/ui/tooltip';
+import { useMemo } from 'react';
 
 const formatCurrency = (value: number) => {
   return value.toLocaleString(undefined, {
@@ -23,11 +24,15 @@ export default function RewardsOverview({
 }: {
   overallRewards: OverallRewards;
 }) {
-  const isOverClaimed =
-    overallRewards.totalClaimed > overallRewards.totalAvailable;
+  const isOverClaimed = useMemo(() => {
+    return overallRewards?.totalClaimed > overallRewards?.totalAvailable;
+  }, [overallRewards]);
 
-  const claimPercentage =
-    (overallRewards.totalClaimed / overallRewards.totalAvailable) * 100;
+  const claimPercentage = useMemo(() => {
+    return (
+      (overallRewards?.totalClaimed / overallRewards?.totalAvailable) * 100
+    );
+  }, [overallRewards]);
 
   return (
     <div className='space-y-4'>
