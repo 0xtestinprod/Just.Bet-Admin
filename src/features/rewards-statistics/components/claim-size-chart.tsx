@@ -15,24 +15,25 @@ export function ClaimSizeChart({
 }: {
   breakdown: Referral.ClaimAnalytics['breakdown'];
 }) {
-  const claimSizeCategories = breakdown.reduce(
+  const breakdownArray = Array.isArray(breakdown)
+    ? breakdown
+    : ([{}] as Referral.ClaimAnalytics['breakdown']);
+
+  const claimSizeCategories = breakdownArray.reduce(
     (acc, item) => {
       if (item.tokenAverageClaimSize < 50) {
         acc.small.value += item.claimedAmount;
-        acc.small.count += item.claimCount;
-      } else if (item.tokenAverageClaimSize < 150) {
+      } else if (item.tokenAverageClaimSize < 200) {
         acc.medium.value += item.claimedAmount;
-        acc.medium.count += item.claimCount;
       } else {
         acc.large.value += item.claimedAmount;
-        acc.large.count += item.claimCount;
       }
       return acc;
     },
     {
-      small: { name: 'Small Claims (<$50)', value: 0, count: 0 },
-      medium: { name: 'Medium Claims ($50-$150)', value: 0, count: 0 },
-      large: { name: 'Large Claims (>$150)', value: 0, count: 0 }
+      small: { name: 'Small Claims (<$50)', value: 0 },
+      medium: { name: 'Medium Claims ($50-$200)', value: 0 },
+      large: { name: 'Large Claims (>$200)', value: 0 }
     }
   );
 
@@ -63,9 +64,7 @@ export function ClaimSizeChart({
               ))}
             </Pie>
             <Tooltip
-              formatter={(value) =>
-                `$${Number(value).toLocaleString()} (${pieChartData.find((item) => item.value === value)?.count} claims)`
-              }
+              formatter={(value) => `$${Number(value).toLocaleString()}`}
             />
             <Legend layout='vertical' align='right' verticalAlign='middle' />
           </PieChart>

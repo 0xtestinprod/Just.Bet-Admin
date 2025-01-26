@@ -48,7 +48,7 @@ export default function RewardsOverview({
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              ${formatCurrency(overallRewards.totalAvailable)}
+              ${formatCurrency(overallRewards?.totalAvailable || 0)}
             </div>
             <Progress value={100} className='mt-2 h-2' />
           </CardContent>
@@ -76,7 +76,7 @@ export default function RewardsOverview({
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              ${formatCurrency(overallRewards.totalClaimed)}
+              ${formatCurrency(overallRewards?.totalClaimed || 0)}
             </div>
             <div
               className={`mt-2 h-2 w-full rounded-full bg-secondary ${isOverClaimed ? 'bg-yellow-500/20' : ''}`}
@@ -99,10 +99,10 @@ export default function RewardsOverview({
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              {formatCurrency(overallRewards.rewardPercentage)}%
+              {formatCurrency(overallRewards?.rewardPercentage || 0)}%
             </div>
             <Progress
-              value={overallRewards.rewardPercentage}
+              value={overallRewards?.rewardPercentage || 0}
               className='mt-2 h-2'
             />
           </CardContent>

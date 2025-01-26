@@ -234,14 +234,14 @@ export function GamePerformanceTable({
                             row.profit >= 0 ? 'text-green-500' : 'text-red-500'
                           }
                         >
-                          ${row.profit.toFixed(2)}
+                          ${row.profit?.toFixed(2) || 0}
                         </span>
                       </TableCell>
                       <TableCell className='text-center'>
-                        ${row.losses.toFixed(2)}
+                        ${row.losses?.toFixed(2) || 0}
                       </TableCell>
                       <TableCell className='text-center'>
-                        {row.profitLossRatio.toFixed(2)}
+                        {row.profitLossRatio?.toFixed(2) || 0}
                       </TableCell>
                       <TableCell className='text-center'>
                         <span
@@ -251,7 +251,7 @@ export function GamePerformanceTable({
                               : 'text-red-500'
                           }
                         >
-                          {(row.profitPercent * 100).toFixed(2)}%
+                          {(row?.profitPercent * 100).toFixed(2) || 0}%
                         </span>
                       </TableCell>
                     </TableRow>

@@ -24,10 +24,10 @@ export default function RewardPercentageStats({
   const COLORS = ['#7C3AED', '#22D3EE', '#F472B6', '#4ADE80'];
 
   const chartData = [
-    { name: 'Min', value: stats.minPercentage, fill: COLORS[0] },
-    { name: 'Median', value: stats.medianPercentage, fill: COLORS[1] },
-    { name: 'Average', value: stats.averagePercentage, fill: COLORS[2] },
-    { name: 'Max', value: stats.maxPercentage, fill: COLORS[3] }
+    { name: 'Min', value: stats?.minPercentage ?? 0, fill: COLORS[0] },
+    { name: 'Median', value: stats?.medianPercentage ?? 0, fill: COLORS[1] },
+    { name: 'Average', value: stats?.averagePercentage ?? 0, fill: COLORS[2] },
+    { name: 'Max', value: stats?.maxPercentage ?? 0, fill: COLORS[3] }
   ];
 
   return (
@@ -68,16 +68,24 @@ export default function RewardPercentageStats({
         <div className='mt-6 grid w-full max-w-md grid-cols-2 gap-4'>
           <StatItem
             label='Average'
-            value={stats.averagePercentage}
+            value={stats?.averagePercentage ?? 0}
             color={COLORS[2]}
           />
           <StatItem
             label='Median'
-            value={stats.medianPercentage}
+            value={stats?.medianPercentage ?? 0}
             color={COLORS[1]}
           />
-          <StatItem label='Min' value={stats.minPercentage} color={COLORS[0]} />
-          <StatItem label='Max' value={stats.maxPercentage} color={COLORS[3]} />
+          <StatItem
+            label='Min'
+            value={stats?.minPercentage ?? 0}
+            color={COLORS[0]}
+          />
+          <StatItem
+            label='Max'
+            value={stats?.maxPercentage ?? 0}
+            color={COLORS[3]}
+          />
         </div>
       </CardContent>
     </Card>

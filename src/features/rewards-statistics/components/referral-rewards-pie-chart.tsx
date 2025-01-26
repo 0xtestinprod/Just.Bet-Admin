@@ -130,7 +130,7 @@ const ReferralRewardsPieChart: React.FC<{
                 </span>
               </div>
               <p className='text-2xl font-bold'>
-                ${totalPendingRewards.toFixed(2)}
+                ${totalPendingRewards?.toFixed(2) || 0}
               </p>
             </div>
             <div className='rounded-lg bg-secondary p-4'>
