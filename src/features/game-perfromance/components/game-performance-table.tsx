@@ -46,7 +46,7 @@ export function GamePerformanceTable({
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
       const sortMultiplier = sortConfig.direction === 'asc' ? 1 : -1;
-      return aValue < bValue ? -sortMultiplier : sortMultiplier;
+      return Number(aValue) < Number(bValue) ? -sortMultiplier : sortMultiplier;
     });
   }, [data, sortConfig]);
 

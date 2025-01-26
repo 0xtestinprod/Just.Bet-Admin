@@ -534,7 +534,7 @@ export class ApiClient {
   }
 
   async getGamePerformanceByToken(
-    address: string,
+    address: string | null,
     token?: string
   ): Promise<GamePerformanceResponse[]> {
     const response = await this.client.get(
@@ -548,7 +548,7 @@ export class ApiClient {
         }
       }
     );
-    return response.data;
+    return response.data.data;
   }
   //#endregion
 
@@ -961,11 +961,14 @@ export function useGetGamePerformance(
 
 export function useGetGamePerformanceByToken(
   address: string,
-
-  token?: string
+  token?: string,
+  deps: any[] = []
 ): UseQueryHookResult<GamePerformanceResponse[]> {
   const apiClient = useAuthenticatedApiClient();
-  return useQuery(() => apiClient.getGamePerformanceByToken(address, token));
+  return useQuery(() => {
+    if (!address) return Promise.resolve([]);
+    return apiClient.getGamePerformanceByToken(address, token);
+  }, deps);
 }
 //#endregion
 

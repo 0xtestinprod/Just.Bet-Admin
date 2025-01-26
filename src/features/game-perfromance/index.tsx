@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useGetGamePerformance } from '@/models/game-performance';
 import { useGetAllTokens } from '@/models/token';
 import { Token, useGetGamePerformanceByToken } from '@/api';
@@ -13,12 +13,15 @@ export default function GamePerformanceDashboard({
   authToken: string;
 }) {
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
-
   const {
     data: gamePerformance,
     loading: gameLoading,
     error: gameError
   } = useGetGamePerformance(authToken);
+
+  const handleTokenSelect = useCallback((token: Token | null) => {
+    setSelectedToken(token);
+  }, []);
 
   const { data: tokens, loading: tokensLoading } = useGetAllTokens(authToken);
 
@@ -26,7 +29,9 @@ export default function GamePerformanceDashboard({
     data: tokenPerformance,
     loading: tokenPerformanceLoading,
     error: tokenPerformanceError
-  } = useGetGamePerformanceByToken(selectedToken?.address || '', authToken);
+  } = useGetGamePerformanceByToken(selectedToken?.address || '', authToken, [
+    selectedToken?.address
+  ]);
 
   return (
     <div className='flex flex-col space-y-8'>
@@ -36,7 +41,7 @@ export default function GamePerformanceDashboard({
           <TokenSelector
             tokens={tokens || []}
             selectedToken={selectedToken}
-            onSelectToken={setSelectedToken}
+            onSelectToken={handleTokenSelect}
             isLoading={tokensLoading}
           />
         </div>
