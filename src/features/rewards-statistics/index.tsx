@@ -18,16 +18,16 @@ export default async function RewardsStatisticsDashboard({
   return (
     <div className='flex w-full flex-col gap-4'>
       <RewardsOverview overallRewards={rewardsAnalytics?.overallRewards} />
-      <div className='flex flex-col gap-4 xl:flex-row'>
-        <ReferralRewardsPieChart
-          data={rewardsAnalytics?.rewardBreakdown || []}
-          totalPendingRewards={rewardsAnalytics?.totalPendingRewards}
-          tokens={tokens}
-        />
-        <RewardPercentageStats
+
+      <ReferralRewardsPieChart
+        data={rewardsAnalytics?.rewardBreakdown || []}
+        totalPendingRewards={rewardsAnalytics?.totalPendingRewards}
+        tokens={tokens}
+      />
+      {/* <RewardPercentageStats
           stats={rewardsAnalytics?.rewardPercentageStats}
-        />
-      </div>
+        /> */}
+
       <ClaimAnalytics claimAnalytics={claimAnalytics} />
     </div>
   );

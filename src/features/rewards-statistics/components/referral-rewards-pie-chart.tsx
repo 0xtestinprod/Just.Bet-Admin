@@ -110,7 +110,7 @@ const ReferralRewardsPieChart: React.FC<{
   );
 
   return (
-    <Card className='w-full max-w-4xl'>
+    <Card className='w-full'>
       <CardHeader>
         <div className='flex items-center justify-between'>
           <div>
