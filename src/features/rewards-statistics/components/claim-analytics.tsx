@@ -6,11 +6,14 @@ import type * as Referral from '@/models/referral';
 import { ClaimSizeChart } from './claim-size-chart';
 import { ClaimBreakdownTable } from './claim-breakdown-table';
 import { OverallStats } from './overall-stats';
+import { Token } from '@/models/token';
 
 export default function ClaimAnalytics({
-  claimAnalytics
+  claimAnalytics,
+  tokens
 }: {
   claimAnalytics: Referral.ClaimAnalytics;
+  tokens: Token[];
 }) {
   const [searchTerm, setSearchTerm] = useState('');
 

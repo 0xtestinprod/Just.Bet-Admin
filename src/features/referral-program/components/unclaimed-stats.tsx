@@ -29,6 +29,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { ArrowUpDown, Search } from 'lucide-react';
+import { useGetAllTokens } from '@/api';
 
 // Register ChartJS components
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -79,7 +80,7 @@ export function UnclaimedStats({ authToken }: { authToken?: string }) {
   const [pageSize, setPageSize] = useState(5);
 
   const { data: unclaimedData } = Referral.useGetUnclaimedReferrals(authToken);
-
+  const { data: tokens } = useGetAllTokens(authToken);
   const filteredData = useMemo(() => {
     if (!unclaimedData?.unclaimedByToken) return [];
     return unclaimedData.unclaimedByToken.filter((item) =>
@@ -109,7 +110,7 @@ export function UnclaimedStats({ authToken }: { authToken?: string }) {
 
   const chartData = {
     labels: sortedData
-      .map((item) => abbreviateAddress(item.token))
+      .map((item) => tokens?.find((t) => t.address === item.token)?.symbol)
       .slice(0, 10),
     datasets: [
       {

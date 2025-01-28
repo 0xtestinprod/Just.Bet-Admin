@@ -28,7 +28,7 @@ export default async function RewardsStatisticsDashboard({
           stats={rewardsAnalytics?.rewardPercentageStats}
         /> */}
 
-      <ClaimAnalytics claimAnalytics={claimAnalytics} />
+      <ClaimAnalytics claimAnalytics={claimAnalytics} tokens={tokens} />
     </div>
   );
 }

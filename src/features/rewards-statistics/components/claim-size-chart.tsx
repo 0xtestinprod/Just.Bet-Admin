@@ -8,6 +8,7 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type * as Referral from '@/models/referral';
+
 const COLORS = ['#7C3AED', '#22D3EE', '#F472B6', '#4ADE80'];
 
 export function ClaimSizeChart({
