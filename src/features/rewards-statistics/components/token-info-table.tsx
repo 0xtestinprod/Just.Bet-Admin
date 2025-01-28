@@ -33,7 +33,7 @@ const TokenInfoTable: React.FC<{ data: TokenInfo[] }> = ({ data }) => {
     key: 'value',
     direction: 'desc'
   });
-
+  console.log(data, 'data');
   const filteredData = useMemo(() => {
     return data.filter(
       (token) =>
@@ -142,8 +142,8 @@ const TokenInfoTable: React.FC<{ data: TokenInfo[] }> = ({ data }) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedData.map((token) => (
-              <TableRow key={token.tokenAddress}>
+            {paginatedData.map((token, index) => (
+              <TableRow key={`${token.tokenAddress}-${index}`}>
                 <TableCell className='font-medium'>{token.name}</TableCell>
                 <TableCell>{`${token.tokenAddress.slice(0, 6)}...${token.tokenAddress.slice(-4)}`}</TableCell>
                 <TableCell className='text-right'>

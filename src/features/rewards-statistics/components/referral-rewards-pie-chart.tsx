@@ -18,6 +18,7 @@ import { Pie, PieChart, Cell, ResponsiveContainer, Sector } from 'recharts';
 import { DollarSign, Users } from 'lucide-react';
 import type { RewardBreakdown } from '@/models/referral';
 import TokenInfoTable from './token-info-table';
+import { Token } from '@/models/token';
 
 // Generate a color palette based on the primary color with different saturations and lightness
 const generateColorPalette = (numColors: number): string[] => {
@@ -51,7 +52,8 @@ const getTokenMetadata = (token: string, index: number, colors: string[]) => {
 const ReferralRewardsPieChart: React.FC<{
   data: RewardBreakdown[];
   totalPendingRewards: number;
-}> = ({ data, totalPendingRewards }) => {
+  tokens: Token[];
+}> = ({ data, totalPendingRewards, tokens }) => {
   const [activeIndex, setActiveIndex] = useState<number | undefined>();
 
   // Generate colors based on number of tokens
@@ -59,13 +61,15 @@ const ReferralRewardsPieChart: React.FC<{
     () => generateColorPalette(data.length),
     [data.length]
   );
-
+  console.log(tokens, 'tokens');
   // Process chart data with dynamic colors
   const chartData = useMemo(() => {
     return data.map((item, index) => {
       const metadata = getTokenMetadata(item.token, index, colors);
       return {
-        name: metadata.symbol,
+        name:
+          tokens.find((token) => token.address === item.token)?.symbol ||
+          item.token,
         value: item.usdValue,
         percentage: item.percentage,
         color: metadata.color,
@@ -74,7 +78,7 @@ const ReferralRewardsPieChart: React.FC<{
         tokenAddress: item.token // Keep original address for reference
       };
     });
-  }, [data, colors]);
+  }, [data, colors, tokens]);
 
   const onPieEnter = (_: any, index: number) => {
     setActiveIndex(index);
