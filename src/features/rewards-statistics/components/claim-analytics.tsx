@@ -20,14 +20,14 @@ export default function ClaimAnalytics({
         <CardTitle>Claim Analytics</CardTitle>
       </CardHeader>
       <CardContent className='space-y-6'>
-        <OverallStats overall={claimAnalytics.overall} />
+        <OverallStats overall={claimAnalytics?.overall || {}} />
         <div className='grid grid-cols-1 gap-6 xl:grid-cols-2'>
           <ClaimBreakdownTable
-            breakdown={claimAnalytics.breakdown}
+            breakdown={claimAnalytics?.breakdown || {}}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
           />
-          <ClaimSizeChart breakdown={claimAnalytics.breakdown} />
+          <ClaimSizeChart breakdown={claimAnalytics?.breakdown || {}} />
         </div>
       </CardContent>
     </Card>

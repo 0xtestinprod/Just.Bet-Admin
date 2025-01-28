@@ -4,15 +4,7 @@ import * as PlayerBehavior from '@/models/player-behavior';
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  ArrowDown,
-  ArrowUp,
-  Clock,
-  Coins,
-  DollarSign,
-  Gamepad2,
-  Repeat
-} from 'lucide-react';
+import { ArrowDown, ArrowUp, Coins, DollarSign, Gamepad2 } from 'lucide-react';
 import { PlayerCombobox } from './components/player-combox';
 import { cn } from '@/lib/utils';
 
@@ -33,17 +25,18 @@ export default function PlayerDashboard({
     address: selectedPlayer
   };
 
-  const { data: dashboardData, error } =
-    PlayerBehavior.useGetPlayerBehaviorDashboard(
-      queryInput,
-      [selectedPlayer],
-      authToken
-    );
+  const { data: dashboardData } = PlayerBehavior.useGetPlayerBehaviorDashboard(
+    queryInput,
+    [selectedPlayer],
+    authToken
+  );
+
+  console.log(dashboardData);
 
   return (
-    <div className='flex w-full flex-col gap-4'>
-      <div className='flex flex-col gap-4'>
-        <div className='flex flex-col justify-between gap-4 sm:flex-row'>
+    <div className='flex w-full flex-col gap-4 overflow-y-auto'>
+      <div className='flex w-full flex-col gap-4'>
+        <div className='flex w-full flex-col justify-between gap-4 sm:flex-row'>
           <h1 className='text-2xl font-bold tracking-tight'>Player Behavior</h1>
           <PlayerCombobox
             players={initialPlayers.map((address) => ({

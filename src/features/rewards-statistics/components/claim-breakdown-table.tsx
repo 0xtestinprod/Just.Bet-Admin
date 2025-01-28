@@ -28,9 +28,11 @@ export function ClaimBreakdownTable({
     direction: 'asc' | 'desc';
   }>({ key: null, direction: 'asc' });
 
-  const filteredData = breakdown.filter((item) =>
-    item.tokenAddress.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredData = Array.isArray(breakdown)
+    ? breakdown.filter((item) =>
+        item.tokenAddress.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
 
   const handleSort = (
     key: keyof Referral.ClaimAnalytics['breakdown'][number]

@@ -69,13 +69,17 @@ export function PlayerCombobox({
           variant='outline'
           role='combobox'
           aria-expanded={open}
-          className='w-[400px] justify-between'
+          className='w-full justify-between'
         >
-          {selectedPlayerDetails?.address ?? 'Select player...'}
+          <span className='block max-w-[calc(100%-2rem)] overflow-hidden text-ellipsis whitespace-nowrap'>
+            {selectedPlayerDetails?.address
+              ? `${selectedPlayerDetails.address}`
+              : 'Select player...'}
+          </span>
           <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className='w-[400px] p-0'>
+      <PopoverContent className='w-full p-0'>
         <Command>
           <CommandInput
             placeholder='Search player address...'

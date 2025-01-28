@@ -1,12 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
-import { useState } from 'react';
-import { GamePerformanceResponse, Token } from '@/api';
+import { useCallback, useState } from 'react';
+import { useGetGamePerformance } from '@/models/game-performance';
+import { useGetAllTokens } from '@/models/token';
+import { Token, useGetGamePerformanceByToken } from '@/api';
 import { TokenSelector } from './components/token-selector';
 import { GamePerformanceTable } from './components/game-performance-table';
-import { axiosInstance } from '@/lib/axios';
-import { useEffect } from 'react';
 
 export default function GamePerformanceDashboard({
   authToken
@@ -14,71 +13,25 @@ export default function GamePerformanceDashboard({
   authToken: string;
 }) {
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
-  const [data, setData] = useState({
-    games: [] as GamePerformanceResponse[],
-    tokens: [] as Token[],
-    tokenGames: [] as GamePerformanceResponse[]
-  });
-  const [loadingStates, setLoadingStates] = useState({
-    initial: true,
-    token: false
-  });
+  const {
+    data: gamePerformance,
+    loading: gameLoading,
+    error: gameError
+  } = useGetGamePerformance(authToken);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [gamesRes, tokensRes] = await Promise.all([
-          axiosInstance.get('games/stats/performance', {
-            headers: { Authorization: `Bearer ${authToken}` }
-          }),
-          axiosInstance.get('token/all', {
-            headers: { Authorization: `Bearer ${authToken}` }
-          })
-        ]);
+  const handleTokenSelect = useCallback((token: Token | null) => {
+    setSelectedToken(token);
+  }, []);
 
-        const games = Array.isArray(gamesRes.data.data)
-          ? gamesRes.data.data
-          : [];
-        const tokens = Array.isArray(tokensRes.data.data)
-          ? tokensRes.data.data
-          : [];
+  const { data: tokens, loading: tokensLoading } = useGetAllTokens(authToken);
 
-        setData((prev) => ({
-          ...prev,
-          games,
-          tokens
-        }));
-      } catch (error) {
-      } finally {
-        setLoadingStates((prev) => ({ ...prev, initial: false }));
-      }
-    }
-
-    fetchData();
-  }, [authToken]);
-
-  useEffect(() => {
-    if (!selectedToken) {
-      setData((prev) => ({ ...prev, tokenGames: [] }));
-      return;
-    }
-
-    setLoadingStates((prev) => ({ ...prev, token: true }));
-    axiosInstance
-      .get(`games/stats/performance/token/${selectedToken.address}`, {
-        headers: { Authorization: `Bearer ${authToken}` }
-      })
-      .then((res) => {
-        const tokenGames = Array.isArray(res.data.data) ? res.data.data : [];
-        setData((prev) => ({ ...prev, tokenGames }));
-      })
-      .catch((error) => {
-        setData((prev) => ({ ...prev, tokenGames: [] }));
-      })
-      .finally(() => {
-        setLoadingStates((prev) => ({ ...prev, token: false }));
-      });
-  }, [selectedToken, authToken]);
+  const {
+    data: tokenPerformance,
+    loading: tokenPerformanceLoading,
+    error: tokenPerformanceError
+  } = useGetGamePerformanceByToken(selectedToken?.address || '', authToken, [
+    selectedToken?.address
+  ]);
 
   return (
     <div className='flex flex-col space-y-8'>
@@ -86,17 +39,18 @@ export default function GamePerformanceDashboard({
         <h1 className='text-2xl font-bold'>Game Performance Dashboard</h1>
         <div className='w-full sm:w-72'>
           <TokenSelector
-            tokens={data.tokens || []}
+            tokens={tokens || []}
             selectedToken={selectedToken}
-            onSelectToken={setSelectedToken}
-            isLoading={loadingStates.initial}
+            onSelectToken={handleTokenSelect}
+            isLoading={tokensLoading}
           />
         </div>
       </div>
 
       <GamePerformanceTable
-        data={data.games || []}
-        isLoading={loadingStates.initial}
+        data={gamePerformance || []}
+        isLoading={gameLoading}
+        error={gameError}
       />
 
       {selectedToken && (
@@ -105,8 +59,9 @@ export default function GamePerformanceDashboard({
             Performance for {selectedToken.symbol} ({selectedToken.address})
           </h2>
           <GamePerformanceTable
-            data={data.tokenGames || []}
-            isLoading={loadingStates.token}
+            data={tokenPerformance || []}
+            isLoading={tokenPerformanceLoading}
+            error={tokenPerformanceError}
           />
         </div>
       )}

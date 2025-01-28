@@ -12,8 +12,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowUpDown, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useMemo, useCallback, useState } from 'react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 interface GamePerformanceTableProps {
   data: GamePerformanceResponse[];
@@ -22,6 +22,8 @@ interface GamePerformanceTableProps {
 }
 
 type SortKey = keyof GamePerformanceResponse;
+
+const ITEMS_PER_PAGE = 10;
 
 export function GamePerformanceTable({
   data,
@@ -38,67 +40,49 @@ export function GamePerformanceTable({
     direction: 'asc'
   });
 
-  const itemsPerPage = 10;
+  const sortedData = useMemo(() => {
+    if (!data?.length) return [];
+    return [...data].sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+      const sortMultiplier = sortConfig.direction === 'asc' ? 1 : -1;
+      return Number(aValue) < Number(bValue) ? -sortMultiplier : sortMultiplier;
+    });
+  }, [data, sortConfig]);
 
-  const sortedData = [...(data || [])].sort((a, b) => {
-    if (a[sortConfig.key] < b[sortConfig.key]) {
-      return sortConfig.direction === 'asc' ? -1 : 1;
-    }
-    if (a[sortConfig.key] > b[sortConfig.key]) {
-      return sortConfig.direction === 'asc' ? 1 : -1;
-    }
-    return 0;
-  });
+  const filteredData = useMemo(() => {
+    if (!searchTerm) return sortedData;
+    return sortedData.filter((row) =>
+      row.game.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [sortedData, searchTerm]);
 
-  const filteredData = sortedData.filter((row) => {
-    const gameId = row.game.toString();
-    const search = searchTerm.trim();
+  const { paginatedData, totalPages } = useMemo(() => {
+    const total = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginated = filteredData.slice(start, start + ITEMS_PER_PAGE);
+    return { paginatedData: paginated, totalPages: total };
+  }, [filteredData, currentPage]);
 
-    if (!search) return true;
-
-    if (!isNaN(Number(search))) {
-      return gameId === search;
-    }
-
-    return row.game.toLowerCase().includes(search.toLowerCase());
-  });
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const paginatedData = filteredData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const handleSort = (key: SortKey) => {
+  const handleSort = useCallback((key: SortKey) => {
     setSortConfig((current) => ({
       key,
       direction:
         current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
     }));
-  };
+  }, []);
 
-  const formatNumber = (
-    value: number | null | undefined,
-    isPercentage = false
-  ) => {
-    if (value === null || value === undefined || isNaN(value)) {
-      return 'N/A';
-    }
-    const num = isPercentage ? value * 100 : value;
-    return isPercentage ? `${num.toFixed(2)}%` : `$${num.toFixed(2)}`;
-  };
+  const handleSearch = useCallback((value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page on search
+  }, []);
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
 
   if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className='text-red-500'>Error Loading Data</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>{error.message}</p>
-        </CardContent>
-      </Card>
-    );
+    throw error;
   }
 
   return (
@@ -108,195 +92,191 @@ export function GamePerformanceTable({
           <Input
             placeholder='Search games...'
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             className='max-w-sm'
           />
         </div>
       </CardHeader>
       <CardContent>
-        <div className='rounded-md border'>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className='text-center'>
-                  <Button
-                    variant='ghost'
-                    onClick={() => handleSort('game')}
-                    className='h-8 w-full justify-center px-2 py-0'
-                  >
-                    Game
-                    <ArrowUpDown className='ml-2 h-4 w-4' />
-                  </Button>
-                </TableHead>
-                <TableHead className='text-center'>
-                  <Button
-                    variant='ghost'
-                    onClick={() => handleSort('frequency')}
-                    className='h-8 w-full justify-center px-2 py-0'
-                  >
-                    Frequency
-                    <ArrowUpDown className='ml-2 h-4 w-4' />
-                  </Button>
-                </TableHead>
-                <TableHead className='text-center'>
-                  <Button
-                    variant='ghost'
-                    onClick={() => handleSort('winsPercentage')}
-                    className='h-8 w-full justify-center px-2 py-0'
-                  >
-                    Win Rate
-                    <ArrowUpDown className='ml-2 h-4 w-4' />
-                  </Button>
-                </TableHead>
-                <TableHead className='text-center'>
-                  <Button
-                    variant='ghost'
-                    onClick={() => handleSort('averageBetSize')}
-                    className='h-8 w-full justify-center px-2 py-0'
-                  >
-                    Avg Bet Size
-                    <ArrowUpDown className='ml-2 h-4 w-4' />
-                  </Button>
-                </TableHead>
-                <TableHead className='text-center'>
-                  <Button
-                    variant='ghost'
-                    onClick={() => handleSort('revenue')}
-                    className='h-8 w-full justify-center px-2 py-0'
-                  >
-                    Revenue
-                    <ArrowUpDown className='ml-2 h-4 w-4' />
-                  </Button>
-                </TableHead>
-                <TableHead className='text-center'>
-                  <Button
-                    variant='ghost'
-                    onClick={() => handleSort('profit')}
-                    className='h-8 w-full justify-center px-2 py-0'
-                  >
-                    Profit
-                    <ArrowUpDown className='ml-2 h-4 w-4' />
-                  </Button>
-                </TableHead>
-                <TableHead className='text-center'>
-                  <Button
-                    variant='ghost'
-                    onClick={() => handleSort('losses')}
-                    className='h-8 w-full justify-center px-2 py-0'
-                  >
-                    Losses
-                    <ArrowUpDown className='ml-2 h-4 w-4' />
-                  </Button>
-                </TableHead>
-                <TableHead className='text-center'>
-                  <Button
-                    variant='ghost'
-                    onClick={() => handleSort('profitLossRatio')}
-                    className='h-8 w-full justify-center px-2 py-0'
-                  >
-                    P/L Ratio
-                    <ArrowUpDown className='ml-2 h-4 w-4' />
-                  </Button>
-                </TableHead>
-                <TableHead className='text-center'>
-                  <Button
-                    variant='ghost'
-                    onClick={() => handleSort('profitPercent')}
-                    className='h-8 w-full justify-center px-2 py-0'
-                  >
-                    Profit %
-                    <ArrowUpDown className='ml-2 h-4 w-4' />
-                  </Button>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
+        <div className='overflow-x-auto'>
+          <div className='rounded-md border'>
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={9} className='py-8 text-center'>
-                    <div className='flex items-center justify-center'>
-                      <Loader2 className='h-8 w-8 animate-spin' />
-                    </div>
-                  </TableCell>
+                  <TableHead className='text-center'>
+                    <Button
+                      variant='ghost'
+                      onClick={() => handleSort('game')}
+                      className='h-8 w-full justify-center px-2 py-0'
+                    >
+                      Game
+                      <ArrowUpDown className='ml-2 h-4 w-4' />
+                    </Button>
+                  </TableHead>
+                  <TableHead className='text-center'>
+                    <Button
+                      variant='ghost'
+                      onClick={() => handleSort('frequency')}
+                      className='h-8 w-full justify-center px-2 py-0'
+                    >
+                      Frequency
+                      <ArrowUpDown className='ml-2 h-4 w-4' />
+                    </Button>
+                  </TableHead>
+                  <TableHead className='text-center'>
+                    <Button
+                      variant='ghost'
+                      onClick={() => handleSort('winsPercentage')}
+                      className='h-8 w-full justify-center px-2 py-0'
+                    >
+                      Win Rate
+                      <ArrowUpDown className='ml-2 h-4 w-4' />
+                    </Button>
+                  </TableHead>
+                  <TableHead className='text-center'>
+                    <Button
+                      variant='ghost'
+                      onClick={() => handleSort('averageBetSize')}
+                      className='h-8 w-full justify-center px-2 py-0'
+                    >
+                      Avg Bet Size
+                      <ArrowUpDown className='ml-2 h-4 w-4' />
+                    </Button>
+                  </TableHead>
+                  <TableHead className='text-center'>
+                    <Button
+                      variant='ghost'
+                      onClick={() => handleSort('revenue')}
+                      className='h-8 w-full justify-center px-2 py-0'
+                    >
+                      Revenue
+                      <ArrowUpDown className='ml-2 h-4 w-4' />
+                    </Button>
+                  </TableHead>
+                  <TableHead className='text-center'>
+                    <Button
+                      variant='ghost'
+                      onClick={() => handleSort('profit')}
+                      className='h-8 w-full justify-center px-2 py-0'
+                    >
+                      Profit
+                      <ArrowUpDown className='ml-2 h-4 w-4' />
+                    </Button>
+                  </TableHead>
+                  <TableHead className='text-center'>
+                    <Button
+                      variant='ghost'
+                      onClick={() => handleSort('losses')}
+                      className='h-8 w-full justify-center px-2 py-0'
+                    >
+                      Losses
+                      <ArrowUpDown className='ml-2 h-4 w-4' />
+                    </Button>
+                  </TableHead>
+                  <TableHead className='text-center'>
+                    <Button
+                      variant='ghost'
+                      onClick={() => handleSort('profitLossRatio')}
+                      className='h-8 w-full justify-center px-2 py-0'
+                    >
+                      P/L Ratio
+                      <ArrowUpDown className='ml-2 h-4 w-4' />
+                    </Button>
+                  </TableHead>
+                  <TableHead className='text-center'>
+                    <Button
+                      variant='ghost'
+                      onClick={() => handleSort('profitPercent')}
+                      className='h-8 w-full justify-center px-2 py-0'
+                    >
+                      Profit %
+                      <ArrowUpDown className='ml-2 h-4 w-4' />
+                    </Button>
+                  </TableHead>
                 </TableRow>
-              ) : paginatedData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className='py-8 text-center'>
-                    No games found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginatedData.map((row) => (
-                  <TableRow key={row.game}>
-                    <TableCell className='text-center font-medium'>
-                      {row.game || 'Unknown'}
-                    </TableCell>
-                    <TableCell className='text-center'>
-                      {row.frequency ?? 'N/A'}
-                    </TableCell>
-                    <TableCell className='text-center'>
-                      {formatNumber(row.winsPercentage, true)}
-                    </TableCell>
-                    <TableCell className='text-center'>
-                      {formatNumber(row.averageBetSize)}
-                    </TableCell>
-                    <TableCell className='text-center'>
-                      {formatNumber(row.revenue)}
-                    </TableCell>
-                    <TableCell className='text-center'>
-                      <span
-                        className={
-                          (row.profit || 0) >= 0
-                            ? 'text-green-500'
-                            : 'text-red-500'
-                        }
-                      >
-                        {formatNumber(row.profit)}
-                      </span>
-                    </TableCell>
-                    <TableCell className='text-center'>
-                      {formatNumber(row.losses)}
-                    </TableCell>
-                    <TableCell className='text-center'>
-                      {row.profitLossRatio?.toFixed(2) ?? 'N/A'}
-                    </TableCell>
-                    <TableCell className='text-center'>
-                      <span
-                        className={
-                          (row.profitPercent || 0) >= 0
-                            ? 'text-green-500'
-                            : 'text-red-500'
-                        }
-                      >
-                        {formatNumber(row.profitPercent, true)}
-                      </span>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className='py-8 text-center'>
+                      <div className='flex items-center justify-center'>
+                        <Loader2 className='h-8 w-8 animate-spin' />
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : paginatedData.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className='py-8 text-center'>
+                      No games found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedData.map((row) => (
+                    <TableRow key={row.game}>
+                      <TableCell className='text-center font-medium'>
+                        {row.game}
+                      </TableCell>
+                      <TableCell className='text-center'>
+                        {row.frequency}
+                      </TableCell>
+                      <TableCell className='text-center'>
+                        {(row.winsPercentage * 100).toFixed(2)}%
+                      </TableCell>
+                      <TableCell className='text-center'>
+                        ${row.averageBetSize.toFixed(2)}
+                      </TableCell>
+                      <TableCell className='text-center'>
+                        ${row.revenue.toFixed(2)}
+                      </TableCell>
+                      <TableCell className='text-center'>
+                        <span
+                          className={
+                            row.profit >= 0 ? 'text-green-500' : 'text-red-500'
+                          }
+                        >
+                          ${row.profit?.toFixed(2) || 0}
+                        </span>
+                      </TableCell>
+                      <TableCell className='text-center'>
+                        ${row.losses?.toFixed(2) || 0}
+                      </TableCell>
+                      <TableCell className='text-center'>
+                        {row.profitLossRatio?.toFixed(2) || 0}
+                      </TableCell>
+                      <TableCell className='text-center'>
+                        <span
+                          className={
+                            row.profitPercent >= 0
+                              ? 'text-green-500'
+                              : 'text-red-500'
+                          }
+                        >
+                          {(row?.profitPercent * 100).toFixed(2) || 0}%
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
 
-        <div className='flex items-center justify-between space-x-2 py-4'>
+        <div className='mt-4 flex items-center justify-between'>
           <Button
             variant='outline'
-            size='sm'
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
           >
             <ChevronLeft className='mr-2 h-4 w-4' />
             Previous
           </Button>
-          <div className='text-sm text-muted-foreground'>
+          <span className='text-sm text-muted-foreground'>
             Page {currentPage} of {totalPages}
-          </div>
+          </span>
           <Button
             variant='outline'
-            size='sm'
-            onClick={() =>
-              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-            }
+            onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
           >
             Next

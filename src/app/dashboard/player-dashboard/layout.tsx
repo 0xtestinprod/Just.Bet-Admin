@@ -11,7 +11,7 @@ export default function OverViewLayout({
   player_stats: React.ReactNode;
 }) {
   return (
-    <PageContainer>
+    <PageContainer scrollable={true}>
       <div className='flex flex-1 flex-col space-y-10'>
         {player_behaviour}
 

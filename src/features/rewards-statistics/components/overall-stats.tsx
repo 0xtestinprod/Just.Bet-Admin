@@ -11,7 +11,7 @@ export function OverallStats({
         <CardContent className='p-4'>
           <div className='text-sm font-medium'>Total Claim Percentage</div>
           <div className='text-2xl font-bold'>
-            {overall.totalClaimPercentage.toFixed(2)}%
+            {overall?.totalClaimPercentage?.toFixed(2) ?? 0}%
           </div>
         </CardContent>
       </Card>
@@ -19,7 +19,7 @@ export function OverallStats({
         <CardContent className='p-4'>
           <div className='text-sm font-medium'>Average Claim Size</div>
           <div className='text-2xl font-bold'>
-            ${overall.averageClaimSize.toFixed(2)}
+            ${overall?.averageClaimSize?.toFixed(2) ?? 0}
           </div>
         </CardContent>
       </Card>
