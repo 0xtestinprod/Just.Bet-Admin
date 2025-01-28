@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, ArrowUpDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -36,6 +36,10 @@ import {
 
 const ITEMS_PER_PAGE = 10;
 
+function abbreviateAddress(address: string): string {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
 export default function PlayerSegmentationDashboard({
   authToken
 }: {
@@ -50,8 +54,8 @@ export default function PlayerSegmentationDashboard({
     useState<PlayerSegmentation.PlayerSegmentsInput | null>(null);
   const queryInput = useMemo(
     () => ({
-      timeFrom: Math.floor((dateFrom?.getTime() ?? 633026396000) / 1000), // Convert milliseconds to seconds
-      timeTo: Math.floor((dateTo?.getTime() ?? 2210863196000) / 1000), // Convert milliseconds to seconds
+      timeFrom: Math.floor((dateFrom?.getTime() ?? 1725227986) / 1000), // Convert milliseconds to seconds
+      timeTo: Math.floor((dateTo?.getTime() ?? Date.now()) / 1000), // Convert milliseconds to seconds
       highRollerMinPercentile: highRollerPercentile,
       lowRollerMaxPercentile: lowRollerPercentile
     }),
@@ -74,11 +78,41 @@ export default function PlayerSegmentationDashboard({
     [allSegments]
   );
 
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: 'asc' | 'desc';
+  }>({ key: '', direction: 'asc' });
+
+  const handleSort = (key: string) => {
+    setSortConfig((current) => ({
+      key,
+      direction:
+        current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
   const currentPageSegments = useMemo(() => {
+    const sortedData = [...(allSegments ?? [])].sort((a, b) => {
+      if (sortConfig.key === '') return 0;
+
+      const aValue = a[sortConfig.key as keyof typeof a];
+      const bValue = b[sortConfig.key as keyof typeof b];
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortConfig.direction === 'asc'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      return sortConfig.direction === 'asc'
+        ? (aValue as number) - (bValue as number)
+        : (bValue as number) - (aValue as number);
+    });
+
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
-    return allSegments?.slice(startIndex, endIndex) ?? [];
-  }, [allSegments, currentPage]);
+    return sortedData.slice(startIndex, endIndex);
+  }, [allSegments, currentPage, sortConfig]);
 
   const segmentCounts = useMemo(
     () =>
@@ -99,6 +133,37 @@ export default function PlayerSegmentationDashboard({
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const getPageNumbers = (currentPage: number, totalPages: number) => {
+    const delta = 2;
+    const range = [];
+    const rangeWithDots = [];
+    let l;
+
+    range.push(1);
+
+    for (let i = currentPage - delta; i <= currentPage + delta; i++) {
+      if (i < totalPages && i > 1) {
+        range.push(i);
+      }
+    }
+
+    range.push(totalPages);
+
+    for (let i of range) {
+      if (l) {
+        if (i - l === 2) {
+          rangeWithDots.push(l + 1);
+        } else if (i - l !== 1) {
+          rangeWithDots.push('...');
+        }
+      }
+      rangeWithDots.push(i);
+      l = i;
+    }
+
+    return rangeWithDots;
   };
 
   if (error) {
@@ -228,81 +293,143 @@ export default function PlayerSegmentationDashboard({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Player</TableHead>
-            <TableHead>Segment</TableHead>
-            <TableHead>Avg Wager</TableHead>
-            <TableHead>Total Wagered</TableHead>
-            <TableHead>Game Count</TableHead>
+            <TableHead>
+              <Button
+                variant='ghost'
+                onClick={() => handleSort('player')}
+                className='h-8 w-full justify-start px-2 py-0'
+              >
+                Player
+                <ArrowUpDown className='ml-2 h-4 w-4' />
+              </Button>
+            </TableHead>
+            <TableHead>
+              <Button
+                variant='ghost'
+                onClick={() => handleSort('segment')}
+                className='h-8 w-full justify-start px-2 py-0'
+              >
+                Segment
+                <ArrowUpDown className='ml-2 h-4 w-4' />
+              </Button>
+            </TableHead>
+            <TableHead>
+              <Button
+                variant='ghost'
+                onClick={() => handleSort('avgWager')}
+                className='h-8 w-full justify-end px-2 py-0'
+              >
+                Avg Wager
+                <ArrowUpDown className='ml-2 h-4 w-4' />
+              </Button>
+            </TableHead>
+            <TableHead>
+              <Button
+                variant='ghost'
+                onClick={() => handleSort('totalWagered')}
+                className='h-8 w-full justify-end px-2 py-0'
+              >
+                Total Wagered
+                <ArrowUpDown className='ml-2 h-4 w-4' />
+              </Button>
+            </TableHead>
+            <TableHead>
+              <Button
+                variant='ghost'
+                onClick={() => handleSort('gameCount')}
+                className='h-8 w-full justify-end px-2 py-0'
+              >
+                Game Count
+                <ArrowUpDown className='ml-2 h-4 w-4' />
+              </Button>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
             <TableRow>
               <TableCell colSpan={5} className='text-center'>
-                Loading...
+                <div className='flex items-center justify-center py-4'>
+                  <Loader2 className='h-8 w-8 animate-spin' />
+                </div>
               </TableCell>
             </TableRow>
           ) : currentPageSegments.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className='text-center'>
+              <TableCell colSpan={5} className='py-4 text-center'>
                 No data available
               </TableCell>
             </TableRow>
           ) : (
             currentPageSegments.map((segment) => (
               <TableRow key={segment.player}>
-                <TableCell>{segment.player}</TableCell>
+                <TableCell className='font-medium'>
+                  {abbreviateAddress(segment.player)}
+                </TableCell>
                 <TableCell>{segment.segment}</TableCell>
-                <TableCell>
+                <TableCell className='text-right'>
                   {segment.avgWager.toLocaleString('en-US', {
                     style: 'currency',
-                    currency: 'USD'
+                    currency: 'USD',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
                   })}
                 </TableCell>
-                <TableCell>
+                <TableCell className='text-right'>
                   {segment.totalWagered.toLocaleString('en-US', {
                     style: 'currency',
-                    currency: 'USD'
+                    currency: 'USD',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
                   })}
                 </TableCell>
-                <TableCell>{segment.gameCount}</TableCell>
+                <TableCell className='text-right'>
+                  {segment.gameCount.toLocaleString()}
+                </TableCell>
               </TableRow>
             ))
           )}
         </TableBody>
       </Table>
-
-      <Pagination className='mt-4'>
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious
-              onClick={() =>
-                currentPage > 1 && handlePageChange(currentPage - 1)
-              }
-              isActive={currentPage !== 1}
-            />
-          </PaginationItem>
-          {[...Array(memoizedTotalPages)].map((_, i) => (
-            <PaginationItem key={i}>
-              <PaginationLink
-                onClick={() => handlePageChange(i + 1)}
-                isActive={currentPage === i + 1}
-              >
-                {i + 1}
-              </PaginationLink>
+      {!isLoading && (
+        <Pagination className='mt-4'>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() =>
+                  currentPage > 1 && handlePageChange(currentPage - 1)
+                }
+                isActive={currentPage !== 1}
+              />
             </PaginationItem>
-          ))}
-          <PaginationItem>
-            <PaginationNext
-              onClick={() =>
-                currentPage < memoizedTotalPages &&
-                handlePageChange(currentPage + 1)
-              }
-              isActive={currentPage !== memoizedTotalPages}
-            />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
+            {getPageNumbers(currentPage, memoizedTotalPages).map(
+              (pageNum, idx) => (
+                <PaginationItem key={idx}>
+                  {pageNum === '...' ? (
+                    <span className='px-4 py-2'>...</span>
+                  ) : (
+                    <PaginationLink
+                      onClick={() => handlePageChange(pageNum as number)}
+                      isActive={currentPage === pageNum}
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  )}
+                </PaginationItem>
+              )
+            )}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() =>
+                  currentPage < memoizedTotalPages &&
+                  handlePageChange(currentPage + 1)
+                }
+                isActive={currentPage !== memoizedTotalPages}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
     </div>
   );
 }
