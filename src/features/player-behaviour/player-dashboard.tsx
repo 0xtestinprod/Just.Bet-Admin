@@ -21,6 +21,8 @@ export default function PlayerDashboard({
     initialPlayers[0] ?? ''
   );
 
+  console.log(authToken, 'authToken');
+
   const queryInput = {
     address: selectedPlayer
   };
@@ -38,14 +40,16 @@ export default function PlayerDashboard({
       <div className='flex w-full flex-col gap-4'>
         <div className='flex w-full flex-col justify-between gap-4 sm:flex-row'>
           <h1 className='text-2xl font-bold tracking-tight'>Player Behavior</h1>
-          <PlayerCombobox
-            players={initialPlayers.map((address) => ({
-              id: address,
-              address
-            }))}
-            selectedPlayer={selectedPlayer}
-            setSelectedPlayer={setSelectedPlayer}
-          />
+          <div>
+            <PlayerCombobox
+              players={initialPlayers.map((address) => ({
+                id: address,
+                address
+              }))}
+              selectedPlayer={selectedPlayer}
+              setSelectedPlayer={setSelectedPlayer}
+            />
+          </div>
         </div>
 
         <Tabs defaultValue='overview' className='space-y-4'>
