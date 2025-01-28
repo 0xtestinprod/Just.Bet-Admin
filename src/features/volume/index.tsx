@@ -9,6 +9,7 @@ import { HourlyVolumeChart } from './components/hourly-volume-chart';
 import { GameStatsTable } from './components/game-stats-table';
 import { GameVolumeChart } from './components/game-volume-chart';
 import * as Volume from '@/models/volume';
+import { BarGraphSkeleton } from '../overview/components/bar-graph-skeleton';
 
 export default function VolumeStatsDashboard({
   authToken
@@ -25,17 +26,19 @@ export default function VolumeStatsDashboard({
     [date]
   );
 
-  const { data: volumeStats } = Volume.useGetVolumeStats(
-    timeRange.timeFrom,
-    timeRange.timeTo,
-    authToken
-  );
+  const { data: volumeStats, loading: volumeStatsLoading } =
+    Volume.useGetVolumeStats(timeRange.timeFrom, timeRange.timeTo, authToken);
 
-  const { data: hourlyData } = Volume.useGetHourlyVolumeDistribution(
-    timeRange.timeFrom,
-    timeRange.timeTo,
-    authToken
-  );
+  const { data: hourlyData, loading: hourlyDataLoading } =
+    Volume.useGetHourlyVolumeDistribution(
+      timeRange.timeFrom,
+      timeRange.timeTo,
+      authToken
+    );
+
+  if (volumeStatsLoading || hourlyDataLoading) {
+    return <BarGraphSkeleton />;
+  }
 
   return (
     <div className='container mx-auto py-10'>

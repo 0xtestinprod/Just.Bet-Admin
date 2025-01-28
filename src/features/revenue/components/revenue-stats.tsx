@@ -37,6 +37,7 @@ import {
   Legend
 } from 'chart.js';
 import { ArrowUpDown, Search } from 'lucide-react';
+import { BarGraphSkeleton } from '@/features/overview/components/bar-graph-skeleton';
 
 // Register ChartJS components
 ChartJS.register(
@@ -78,11 +79,8 @@ export function RevenueStats({ authToken }: { authToken?: string }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-  const { data: revenueData } = Revenue.useGetDegenRevenue(
-    undefined,
-    undefined,
-    authToken
-  );
+  const { data: revenueData, loading: revenueDataLoading } =
+    Revenue.useGetDegenRevenue(undefined, undefined, authToken);
 
   const filteredAndSortedData = useMemo(() => {
     if (!revenueData?.byGame) return [];
@@ -124,176 +122,193 @@ export function RevenueStats({ authToken }: { authToken?: string }) {
     }));
   };
 
+  if (revenueDataLoading) {
+    return <BarGraphSkeleton />;
+  }
+
   return (
-    <div className='space-y-8'>
-      {/* Revenue Overview Cards */}
-      <div className='grid gap-4 md:grid-cols-3'>
+    <>
+      {' '}
+      <h1 className='text-3xl font-bold tracking-tight'>Revenue Dashboard</h1>
+      <h3 className='text-muted-foreground'>
+        A overview of degen revenue metrics across all games
+      </h3>
+      <div className='space-y-8'>
+        {/* Revenue Overview Cards */}
+        <div className='grid gap-4 md:grid-cols-3'>
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Revenue</CardTitle>
+              <CardDescription>
+                Overall revenue across all games
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className='text-2xl font-bold'>
+                ${(revenueData?.totalRevenue ?? 0).toLocaleString()}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Fee Revenue</CardTitle>
+              <CardDescription>Revenue from fees</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className='text-2xl font-bold'>
+                ${(revenueData?.feeRevenue ?? 0).toLocaleString()}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Loss Revenue</CardTitle>
+              <CardDescription>Revenue from losses</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className='text-2xl font-bold'>
+                ${(revenueData?.lossRevenue ?? 0).toLocaleString()}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Revenue Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Total Revenue</CardTitle>
-            <CardDescription>Overall revenue across all games</CardDescription>
+            <CardTitle>Revenue Distribution</CardTitle>
+            <CardDescription>Revenue breakdown by game</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>
-              ${(revenueData?.totalRevenue ?? 0).toLocaleString()}
+            <div className='h-[400px]'>
+              <Bar options={options} data={chartData} />
             </div>
           </CardContent>
         </Card>
+
+        {/* Detailed Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Fee Revenue</CardTitle>
-            <CardDescription>Revenue from fees</CardDescription>
+            <CardTitle>Detailed Revenue</CardTitle>
+            <CardDescription>
+              Comprehensive revenue data by game
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>
-              ${(revenueData?.feeRevenue ?? 0).toLocaleString()}
+            <div className='flex items-center gap-4 py-4'>
+              <div className='relative flex-1'>
+                <Search className='absolute left-2 top-2.5 h-4 w-4 text-muted-foreground' />
+                <Input
+                  placeholder='Search by game name...'
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1); // Reset to first page on search
+                  }}
+                  className='pl-8'
+                />
+              </div>
+              <Select
+                value={pageSize.toString()}
+                onValueChange={(value) => {
+                  setPageSize(Number(value));
+                  setCurrentPage(1); // Reset to first page when changing page size
+                }}
+              >
+                <SelectTrigger className='w-[180px]'>
+                  <SelectValue placeholder='Select page size' />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='5'>5 per page</SelectItem>
+                  <SelectItem value='10'>10 per page</SelectItem>
+                  <SelectItem value='20'>20 per page</SelectItem>
+                  <SelectItem value='50'>50 per page</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Loss Revenue</CardTitle>
-            <CardDescription>Revenue from losses</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className='text-2xl font-bold'>
-              ${(revenueData?.lossRevenue ?? 0).toLocaleString()}
+
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                    <Button variant='ghost' onClick={() => requestSort('game')}>
+                      Game
+                      <ArrowUpDown className='ml-2 h-4 w-4' />
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant='ghost'
+                      onClick={() => requestSort('revenue')}
+                    >
+                      Revenue
+                      <ArrowUpDown className='ml-2 h-4 w-4' />
+                    </Button>
+                  </TableHead>
+                  <TableHead>% of Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedData.map((item) => (
+                  <TableRow key={item.game}>
+                    <TableCell className='font-medium'>{item.game}</TableCell>
+                    <TableCell>${item.revenue.toLocaleString()}</TableCell>
+                    <TableCell>
+                      {(
+                        (item.revenue / (revenueData?.totalRevenue ?? 0)) *
+                        100
+                      ).toFixed(2)}
+                      %
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+
+            <div className='flex items-center justify-between space-x-2 py-4'>
+              <div className='text-sm text-muted-foreground'>
+                Showing {(currentPage - 1) * pageSize + 1} to{' '}
+                {Math.min(currentPage * pageSize, filteredAndSortedData.length)}{' '}
+                of {filteredAndSortedData.length} entries
+              </div>
+              <div className='flex space-x-2'>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(1, prev - 1))
+                  }
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? 'default' : 'outline'}
+                      size='sm'
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </Button>
+                  )
+                )}
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Revenue Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Revenue Distribution</CardTitle>
-          <CardDescription>Revenue breakdown by game</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className='h-[400px]'>
-            <Bar options={options} data={chartData} />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Detailed Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Detailed Revenue</CardTitle>
-          <CardDescription>Comprehensive revenue data by game</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className='flex items-center gap-4 py-4'>
-            <div className='relative flex-1'>
-              <Search className='absolute left-2 top-2.5 h-4 w-4 text-muted-foreground' />
-              <Input
-                placeholder='Search by game name...'
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1); // Reset to first page on search
-                }}
-                className='pl-8'
-              />
-            </div>
-            <Select
-              value={pageSize.toString()}
-              onValueChange={(value) => {
-                setPageSize(Number(value));
-                setCurrentPage(1); // Reset to first page when changing page size
-              }}
-            >
-              <SelectTrigger className='w-[180px]'>
-                <SelectValue placeholder='Select page size' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='5'>5 per page</SelectItem>
-                <SelectItem value='10'>10 per page</SelectItem>
-                <SelectItem value='20'>20 per page</SelectItem>
-                <SelectItem value='50'>50 per page</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>
-                  <Button variant='ghost' onClick={() => requestSort('game')}>
-                    Game
-                    <ArrowUpDown className='ml-2 h-4 w-4' />
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button
-                    variant='ghost'
-                    onClick={() => requestSort('revenue')}
-                  >
-                    Revenue
-                    <ArrowUpDown className='ml-2 h-4 w-4' />
-                  </Button>
-                </TableHead>
-                <TableHead>% of Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedData.map((item) => (
-                <TableRow key={item.game}>
-                  <TableCell className='font-medium'>{item.game}</TableCell>
-                  <TableCell>${item.revenue.toLocaleString()}</TableCell>
-                  <TableCell>
-                    {(
-                      (item.revenue / (revenueData?.totalRevenue ?? 0)) *
-                      100
-                    ).toFixed(2)}
-                    %
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          <div className='flex items-center justify-between space-x-2 py-4'>
-            <div className='text-sm text-muted-foreground'>
-              Showing {(currentPage - 1) * pageSize + 1} to{' '}
-              {Math.min(currentPage * pageSize, filteredAndSortedData.length)}{' '}
-              of {filteredAndSortedData.length} entries
-            </div>
-            <div className='flex space-x-2'>
-              <Button
-                variant='outline'
-                size='sm'
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (page) => (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? 'default' : 'outline'}
-                    size='sm'
-                    onClick={() => setCurrentPage(page)}
-                  >
-                    {page}
-                  </Button>
-                )
-              )}
-              <Button
-                variant='outline'
-                size='sm'
-                onClick={() =>
-                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                }
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    </>
   );
 }
