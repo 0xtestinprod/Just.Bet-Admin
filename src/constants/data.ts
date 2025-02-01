@@ -14,14 +14,6 @@ export type Product = {
 //Info: The following data is used for the sidebar navigation and Cmd K bar.
 export const navItems: NavItem[] = [
   {
-    title: 'Player Dashboard',
-    url: '/dashboard/player-dashboard',
-    icon: 'dashboard',
-    isActive: false,
-    shortcut: ['d', 'd'],
-    items: [] // Empty array as there are no child items for Dashboard
-  },
-  {
     title: 'Game Performance',
     url: '/dashboard/game-performance',
     icon: 'performance',
@@ -37,14 +29,14 @@ export const navItems: NavItem[] = [
     isActive: false,
     items: []
   },
-  {
-    title: 'Social Stats',
-    url: '/dashboard/social',
-    icon: 'social',
-    shortcut: ['s', 's'],
-    isActive: false,
-    items: []
-  },
+  // {
+  //   title: 'Social Stats',
+  //   url: '/dashboard/social',
+  //   icon: 'social',
+  //   shortcut: ['s', 's'],
+  //   isActive: false,
+  //   items: []
+  // },
   {
     title: 'Player Segmentation',
     url: '/dashboard/player-segmentation',
@@ -62,11 +54,19 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
-    title: 'Revenue',
-    url: '/dashboard/revenue',
-    icon: 'revenue',
-    shortcut: ['r', 'r'],
+    title: 'Player Dashboard',
+    url: '/dashboard/player-dashboard',
+    icon: 'dashboard',
     isActive: false,
-    items: []
+    shortcut: ['d', 'd'],
+    items: [] // Empty array as there are no child items for Dashboard
   }
+  // {
+  //   title: 'Revenue',
+  //   url: '/dashboard/revenue',
+  //   icon: 'revenue',
+  //   shortcut: ['r', 'r'],
+  //   isActive: false,
+  //   items: []
+  // }
 ];

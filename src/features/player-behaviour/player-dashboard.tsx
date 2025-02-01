@@ -21,8 +21,6 @@ export default function PlayerDashboard({
     initialPlayers[0] ?? ''
   );
 
-  console.log(authToken, 'authToken');
-
   const queryInput = {
     address: selectedPlayer
   };
@@ -32,8 +30,6 @@ export default function PlayerDashboard({
     [selectedPlayer],
     authToken
   );
-
-  console.log(dashboardData);
 
   return (
     <div className='flex w-full flex-col gap-4 overflow-y-auto'>

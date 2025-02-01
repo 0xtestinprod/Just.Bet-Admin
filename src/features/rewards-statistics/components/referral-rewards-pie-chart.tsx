@@ -61,7 +61,7 @@ const ReferralRewardsPieChart: React.FC<{
     () => generateColorPalette(data.length),
     [data.length]
   );
-  console.log(tokens, 'tokens');
+
   // Process chart data with dynamic colors
   const chartData = useMemo(() => {
     return data.map((item, index) => {

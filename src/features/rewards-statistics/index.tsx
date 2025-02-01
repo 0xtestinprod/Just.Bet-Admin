@@ -1,5 +1,4 @@
 import React from 'react';
-import RewardPercentageStats from './components/reward-percentage-stats';
 import ReferralRewardsPieChart from './components/referral-rewards-pie-chart';
 import RewardsOverview from './components/rewards-overview';
 import ClaimAnalytics from './components/claim-analytics';
@@ -12,6 +11,7 @@ export default async function RewardsStatisticsDashboard({
   authToken?: string;
 }) {
   const rewardsAnalytics = await Referral.getRewardsAnalytics(authToken);
+
   const claimAnalytics = await Referral.getClaimAnalytics(authToken);
   const tokens = await getAllTokens(authToken);
 

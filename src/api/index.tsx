@@ -747,13 +747,8 @@ export class ApiClient {
   //#endregion
 
   //#region Volume endpoints
-  async getVolumeStats(
-    timeFrom?: number,
-    timeTo?: number,
-    token?: string
-  ): Promise<VolumeStatsResponse> {
+  async getVolumeStats(token?: string): Promise<VolumeStatsResponse> {
     const response = await this.client.get('volume-stats', {
-      params: { timeFrom, timeTo },
       headers: {
         ...this.getHeaders(),
         Authorization: token
@@ -765,12 +760,9 @@ export class ApiClient {
   }
 
   async getHourlyVolumeDistribution(
-    timeFrom?: number,
-    timeTo?: number,
     token?: string
   ): Promise<HourlyVolumeDistribution[]> {
     const response = await this.client.get('volume-stats/hourly-distribution', {
-      params: { timeFrom, timeTo },
       headers: {
         ...this.getHeaders(),
         Authorization: token
@@ -1096,7 +1088,7 @@ export async function getVolumeStats(
   token?: string
 ): Promise<VolumeStatsResponse> {
   const apiClient = await createServerApiClient();
-  return apiClient.getVolumeStats(timeFrom, timeTo, token);
+  return apiClient.getVolumeStats(token);
 }
 
 export async function getHourlyVolumeDistribution(
@@ -1105,18 +1097,16 @@ export async function getHourlyVolumeDistribution(
   token?: string
 ): Promise<HourlyVolumeDistribution[]> {
   const apiClient = await createServerApiClient();
-  return apiClient.getHourlyVolumeDistribution(timeFrom, timeTo, token);
+  return apiClient.getHourlyVolumeDistribution(token);
 }
 //#endregion
 
 //#region Volume Hooks
 export function useGetVolumeStats(
-  timeFrom?: number,
-  timeTo?: number,
   token?: string
 ): UseQueryHookResult<VolumeStatsResponse> {
   const apiClient = useAuthenticatedApiClient();
-  return useQuery(() => apiClient.getVolumeStats(timeFrom, timeTo, token));
+  return useQuery(() => apiClient.getVolumeStats(token));
 }
 
 export function useGetHourlyVolumeDistribution(
@@ -1125,9 +1115,7 @@ export function useGetHourlyVolumeDistribution(
   token?: string
 ): UseQueryHookResult<HourlyVolumeDistribution[]> {
   const apiClient = useAuthenticatedApiClient();
-  return useQuery(() =>
-    apiClient.getHourlyVolumeDistribution(timeFrom, timeTo, token)
-  );
+  return useQuery(() => apiClient.getHourlyVolumeDistribution(token));
 }
 //#endregion
 

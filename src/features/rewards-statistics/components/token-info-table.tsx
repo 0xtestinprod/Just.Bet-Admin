@@ -33,7 +33,7 @@ const TokenInfoTable: React.FC<{ data: TokenInfo[] }> = ({ data }) => {
     key: 'value',
     direction: 'desc'
   });
-  console.log(data, 'data');
+
   const filteredData = useMemo(() => {
     return data.filter(
       (token) =>

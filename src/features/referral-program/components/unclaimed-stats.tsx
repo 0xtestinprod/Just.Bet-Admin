@@ -70,6 +70,18 @@ function generateColors(count: number) {
   return colors;
 }
 
+// Add this helper function
+function formatTokenAmount(amount: number, decimals: number): string {
+  const formattedAmount = Number(amount) / Math.pow(10, decimals);
+  if (formattedAmount >= 0.001) {
+    return formattedAmount.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 6
+    });
+  }
+  return formattedAmount > 0 ? '<0.001' : '0';
+}
+
 export function UnclaimedStats({ authToken }: { authToken?: string }) {
   const [sortConfig, setSortConfig] = useState<{
     key: keyof TokenData;
@@ -231,25 +243,28 @@ export function UnclaimedStats({ authToken }: { authToken?: string }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedData.map((item) => (
-                <TableRow key={item.token}>
-                  <TableCell className='font-mono'>{item.token}</TableCell>
-                  <TableCell>
-                    {item.amount.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 6
-                    })}
-                  </TableCell>
-                  <TableCell>
-                    $
-                    {item.amountUsd.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
-                  </TableCell>
-                  <TableCell>{item.count}</TableCell>
-                </TableRow>
-              ))}
+              {paginatedData.map((item) => {
+                const token = tokens?.find((t) => t.address === item.token);
+                const formattedAmount = formatTokenAmount(
+                  item.amount,
+                  token?.decimals || 18
+                );
+
+                return (
+                  <TableRow key={item.token}>
+                    <TableCell className='font-mono'>{item.token}</TableCell>
+                    <TableCell>{formattedAmount}</TableCell>
+                    <TableCell>
+                      $
+                      {item.amountUsd.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}
+                    </TableCell>
+                    <TableCell>{item.count}</TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
 
