@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,6 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger
 } from '@/components/ui/popover';
+import { useDebounce } from '@/hooks/use-debounce';
 
 interface Player {
   id: string;
@@ -29,6 +30,8 @@ interface PlayerComboboxProps {
   setSelectedPlayer: (address: string) => void;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export function PlayerCombobox({
   players,
   selectedPlayer,
@@ -36,18 +39,41 @@ export function PlayerCombobox({
 }: PlayerComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [page, setPage] = React.useState(1);
+  const [hasMore, setHasMore] = React.useState(true);
+  const observerRef = React.useRef<IntersectionObserver | null>(null);
+
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const filteredPlayers = React.useMemo(() => {
-    if (!searchQuery) return players;
-    const query = searchQuery.toLowerCase();
-    return players.filter((player) =>
-      player.address.toLowerCase().includes(query)
-    );
-  }, [players, searchQuery]);
+    if (!debouncedSearchQuery) return players.slice(0, page * ITEMS_PER_PAGE);
+    const query = debouncedSearchQuery.toLowerCase();
+    return players
+      .filter((player) => player.address.toLowerCase().includes(query))
+      .slice(0, page * ITEMS_PER_PAGE);
+  }, [players, debouncedSearchQuery, page]);
 
   const selectedPlayerDetails = React.useMemo(
     () => players.find((player) => player.address === selectedPlayer),
     [players, selectedPlayer]
+  );
+
+  const lastItemRef = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      if (observerRef.current) observerRef.current.disconnect();
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          setPage((prevPage) => {
+            const nextPage = prevPage + 1;
+            const totalItems = nextPage * ITEMS_PER_PAGE;
+            setHasMore(totalItems < players.length);
+            return nextPage;
+          });
+        }
+      });
+      if (node) observerRef.current.observe(node);
+    },
+    [hasMore, players.length]
   );
 
   const handleSelect = React.useCallback(
@@ -60,6 +86,8 @@ export function PlayerCombobox({
 
   const handleSearch = React.useCallback((value: string) => {
     setSearchQuery(value);
+    setPage(1);
+    setHasMore(true);
   }, []);
 
   return (
@@ -89,11 +117,14 @@ export function PlayerCombobox({
           <CommandList>
             <CommandEmpty>No player found.</CommandEmpty>
             <CommandGroup>
-              {filteredPlayers.map((player) => (
+              {filteredPlayers.map((player, index) => (
                 <CommandItem
                   key={player.id}
                   value={player.address}
                   onSelect={handleSelect}
+                  ref={
+                    index === filteredPlayers.length - 1 ? lastItemRef : null
+                  }
                 >
                   <Check
                     className={cn(
@@ -106,6 +137,11 @@ export function PlayerCombobox({
                   {player.address}
                 </CommandItem>
               ))}
+              {hasMore && (
+                <div className='py-2 text-center'>
+                  <Loader2 className='inline-block h-4 w-4 animate-spin' />
+                </div>
+              )}
             </CommandGroup>
           </CommandList>
         </Command>

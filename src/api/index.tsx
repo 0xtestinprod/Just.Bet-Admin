@@ -176,6 +176,20 @@ export interface RewardReferral {
 
 // #region Input/Output Player-Behavior Dashboard Types
 
+export interface GameQueryParams {
+  page?: number;
+  limit?: number;
+  address: string;
+}
+
+export interface PaginatedGamesResponse {
+  data: GameCollection[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 // Player Behavior Input
 export interface PlayerBehaviorInput {
   address: string;
@@ -629,16 +643,23 @@ export class ApiClient {
   //#endregion
 
   //#region Game endpoints
-  async getAllGames(token?: string): Promise<string[]> {
+  async getAllGames(
+    params: GameQueryParams,
+    token?: string
+  ): Promise<PaginatedGamesResponse> {
     const response = await this.client.get('games/all', {
+      params: {
+        page: params.page || 1,
+        limit: params.limit || 10,
+        address: params.address || ''
+      },
       headers: {
-        ...this.getHeaders(),
         Authorization: token
           ? `Bearer ${token}`
           : this.getHeaders().Authorization
       }
     });
-    return response.data;
+    return response.data.data;
   }
   //#endregion
 
@@ -912,16 +933,33 @@ export function useGetAllPlayers(): UseQueryHookResult<string[]> {
 //#endregion
 
 //#region Game API Functions
-export async function getAllGames(token?: string): Promise<string[]> {
+export async function getAllGames(
+  params: GameQueryParams,
+  token?: string
+): Promise<PaginatedGamesResponse> {
   const apiClient = await createServerApiClient();
-  return apiClient.getAllGames(token);
+  return apiClient.getAllGames(params, token);
 }
 //#endregion
 
 //#region Game Hooks
-export function useGetAllGames(token?: string): UseQueryHookResult<string[]> {
+export function useGetAllGames(
+  params: GameQueryParams,
+  dependencies: any[] = [],
+  token?: string
+): UseQueryHookResult<PaginatedGamesResponse> {
   const apiClient = useAuthenticatedApiClient();
-  return useQuery(() => apiClient.getAllGames(token));
+  return useQuery(() => {
+    if (!token)
+      return Promise.resolve({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0
+      });
+    return apiClient.getAllGames(params, token);
+  }, [...dependencies, token]);
 }
 //#endregion
 
